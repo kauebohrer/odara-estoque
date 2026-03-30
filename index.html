@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Odara · Estoque</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0f0e0c; --surface:#1a1814; --surface2:#232018; --border:#2e2b24;
+    --gold:#c9a84c; --gold-light:#e8c96e; --gold-dim:rgba(201,168,76,0.15);
+    --text:#f0ead8; --text-muted:#8a8070; --text-dim:#5a5448;
+    --positive:#6db87a; --negative:#d4715a; --warning:#d4a85a;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; font-weight:300; min-height:100vh; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events:none; z-index:0; opacity:0.4; }
+  .wrap { position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:48px 32px; }
+
+  header { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:48px; }
+  .brand { display:flex; flex-direction:column; gap:4px; }
+  .brand-name { font-family:'DM Serif Display',serif; font-size:32px; letter-spacing:.06em; color:var(--gold-light); }
+  .brand-sub { font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--text-muted); }
+  .header-right { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+  .header-tag { font-size:11px; letter-spacing:.15em; text-transform:uppercase; color:var(--text-dim); border:1px solid var(--border); padding:6px 14px; border-radius:2px; }
+  .db-status { font-size:11px; letter-spacing:.1em; display:flex; align-items:center; gap:6px; }
+  .db-dot { width:7px; height:7px; border-radius:50%; background:var(--text-dim); transition:background .3s; }
+  .db-dot.ok { background:var(--positive); }
+  .db-dot.err { background:var(--negative); }
+
+  /* Trava bar */
+  .trava-bar { background:rgba(212,168,90,.08); border:1px solid rgba(212,168,90,.25); border-radius:4px; padding:12px 18px; margin-bottom:24px; font-size:12px; color:var(--warning); display:none; line-height:1.6; }
+  .trava-bar strong { color:var(--gold-light); }
+
+  /* Action grid */
+  .action-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:32px; }
+  .action-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:24px; }
+  .action-card-title { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-dim); margin-bottom:16px; }
+
+  /* Upload zones */
+  .upload-zone { border:1px dashed var(--border); border-radius:4px; padding:24px 16px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; background:var(--surface2); }
+  .upload-zone:hover,.upload-zone.drag { border-color:var(--gold); background:var(--gold-dim); }
+  .upload-zone input { display:none; }
+  .upload-icon { font-size:22px; margin-bottom:6px; opacity:.6; }
+  .upload-label { font-size:12px; color:var(--text-muted); line-height:1.7; }
+  .upload-label strong { color:var(--gold); font-weight:500; }
+  .upload-zone.inv-zone { border-color:rgba(212,168,90,.3); }
+  .upload-zone.inv-zone:hover,.upload-zone.inv-zone.drag { border-color:var(--warning); background:rgba(212,168,90,.08); }
+
+  /* Inventory list */
+  .inv-list { display:flex; flex-direction:column; gap:6px; margin-top:12px; max-height:150px; overflow-y:auto; }
+  .inv-item { display:flex; align-items:center; justify-content:space-between; background:var(--surface2); border:1px solid var(--border); border-radius:3px; padding:9px 12px; font-size:12px; gap:8px; }
+  .inv-item-date { color:var(--gold); font-weight:500; min-width:72px; }
+  .inv-item-skus { color:var(--text-muted); }
+  .inv-item-obs { color:var(--text-dim); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .inv-item-del { background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:13px; padding:0 4px; transition:color .15s; flex-shrink:0; }
+  .inv-item-del:hover { color:var(--negative); }
+  .inv-empty { font-size:12px; color:var(--text-dim); text-align:center; padding:16px; }
+
+  /* Loader */
+  .loader { display:none; text-align:center; padding:14px 0 0; }
+  .loader-bar { width:180px; height:2px; background:var(--border); margin:8px auto 0; border-radius:2px; overflow:hidden; }
+  .loader-bar-fill { height:100%; width:0%; background:var(--gold); animation:loadpulse 1.2s ease-in-out infinite; }
+  @keyframes loadpulse { 0%{width:0%} 50%{width:80%} 100%{width:100%} }
+  .loader-text { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); }
+
+  /* Dashboard */
+  #dashboard { display:none; }
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px; }
+  .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:20px 24px; }
+  .stat-label { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px; }
+  .stat-value { font-family:'DM Serif Display',serif; font-size:26px; color:var(--gold-light); }
+  .stat-sub { font-size:11px; color:var(--text-muted); margin-top:4px; }
+
+  /* Selector row */
+  .selector-row { display:flex; gap:16px; align-items:flex-start; margin-bottom:32px; flex-wrap:wrap; }
+  .field-group { display:flex; flex-direction:column; gap:6px; flex:1; min-width:260px; }
+  .field-label { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-dim); }
+  .search-wrap { position:relative; }
+  .search-input { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:4px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; padding:12px 16px; outline:none; transition:border-color .2s; }
+  .search-input:focus { border-color:var(--gold); }
+  .search-input::placeholder { color:var(--text-dim); }
+  .dropdown { position:absolute; top:calc(100% + 4px); left:0; right:0; background:var(--surface2); border:1px solid var(--border); border-radius:4px; max-height:260px; overflow-y:auto; z-index:100; display:none; }
+  .dropdown.open { display:block; }
+  .dropdown-item { padding:10px 16px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border); transition:background .15s; display:flex; gap:12px; align-items:baseline; }
+  .dropdown-item:last-child { border-bottom:none; }
+  .dropdown-item:hover { background:var(--gold-dim); }
+  .dropdown-item .sku-code { color:var(--gold); font-size:11px; font-weight:500; min-width:72px; }
+
+  /* Toggles */
+  .scale-btns,.period-btns { display:flex; gap:4px; flex-wrap:wrap; }
+  .scale-btn,.period-btn { background:var(--surface); border:1px solid var(--border); color:var(--text-muted); font-family:'DM Sans',sans-serif; font-size:12px; letter-spacing:.1em; padding:10px 16px; border-radius:4px; cursor:pointer; transition:all .15s; }
+  .scale-btn:hover,.period-btn:hover { border-color:var(--gold); color:var(--text); }
+  .scale-btn.active,.period-btn.active { background:var(--gold-dim); border-color:var(--gold); color:var(--gold-light); }
+
+  /* Chart */
+  .chart-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:28px 28px 20px; }
+  .chart-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; }
+  .chart-title { font-family:'DM Serif Display',serif; font-size:20px; color:var(--text); }
+  .chart-sku { font-size:11px; color:var(--gold); letter-spacing:.12em; margin-top:2px; }
+  .chart-badges { display:flex; gap:8px; flex-wrap:wrap; }
+  .badge { font-size:11px; padding:4px 10px; border-radius:2px; letter-spacing:.08em; }
+  .badge-pos { background:rgba(109,184,122,.15); color:var(--positive); border:1px solid rgba(109,184,122,.3); }
+  .badge-neg { background:rgba(212,113,90,.15); color:var(--negative); border:1px solid rgba(212,113,90,.3); }
+  .badge-neu { background:var(--gold-dim); color:var(--gold); border:1px solid rgba(201,168,76,.3); }
+  .badge-inv { background:rgba(212,168,90,.15); color:var(--warning); border:1px solid rgba(212,168,90,.3); }
+  .chart-wrap { position:relative; height:320px; }
+  .no-data { display:none; text-align:center; padding:80px 0; color:var(--text-dim); font-size:14px; }
+
+  /* Table */
+  .table-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; margin-top:16px; overflow:hidden; }
+  .table-header { padding:16px 28px; border-bottom:1px solid var(--border); display:flex; align-items:baseline; gap:12px; }
+  .table-header-title { font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-dim); }
+  .table-header-sub { font-size:12px; color:var(--text-muted); }
+  .table-scroll { overflow-x:auto; max-height:320px; overflow-y:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  thead th { position:sticky; top:0; background:var(--surface2); padding:10px 20px; text-align:left; font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-dim); font-weight:500; border-bottom:1px solid var(--border); white-space:nowrap; }
+  thead th:not(:first-child) { text-align:right; }
+  tbody tr { border-bottom:1px solid var(--border); transition:background .1s; }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr:hover { background:var(--gold-dim); }
+  tbody td { padding:10px 20px; color:var(--text-muted); white-space:nowrap; }
+  tbody td:first-child { color:var(--text); }
+  tbody td:not(:first-child) { text-align:right; }
+  .td-neg { color:var(--negative) !important; }
+  .td-total { background:var(--surface2); font-weight:500; }
+  .td-total td { color:var(--text) !important; border-top:1px solid var(--border); }
+  .tr-inv td { color:var(--warning) !important; font-style:italic; }
+
+  /* Toast */
+  .toast { position:fixed; bottom:24px; right:24px; z-index:999; max-width:420px; background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:14px 18px; font-size:13px; line-height:1.6; box-shadow:0 8px 32px rgba(0,0,0,.5); transform:translateY(20px); opacity:0; transition:all .3s; pointer-events:none; }
+  .toast.show { transform:translateY(0); opacity:1; pointer-events:auto; }
+  .toast.success { border-color:var(--positive); }
+  .toast.error   { border-color:var(--negative); }
+  .toast.warning { border-color:var(--warning); }
+  .toast-title { font-weight:500; margin-bottom:4px; }
+  .toast.success .toast-title { color:var(--positive); }
+  .toast.error   .toast-title { color:var(--negative); }
+  .toast.warning .toast-title { color:var(--warning); }
+
+  ::-webkit-scrollbar{width:4px} ::-webkit-scrollbar-track{background:var(--surface)} ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px} ::-webkit-scrollbar-thumb:hover{background:var(--gold)}
+  footer { margin-top:48px; text-align:center; font-size:11px; color:var(--text-dim); letter-spacing:.1em; }
+  @media(max-width:700px){ .action-grid{grid-template-columns:1fr} .stats-row{grid-template-columns:1fr 1fr} .wrap{padding:28px 16px} header{flex-direction:column;align-items:flex-start;gap:12px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-name">Odara</div>
+      <div class="brand-sub">Gestão de Estoque</div>
+    </div>
+    <div class="header-right">
+      <div class="header-tag">Fase 1 · Dashboard</div>
+      <div class="db-status"><div class="db-dot" id="dbDot"></div><span id="dbLabel">conectando…</span></div>
+    </div>
+  </header>
+
+  <div class="trava-bar" id="travaBar"></div>
+
+  <div class="action-grid">
+
+    <!-- Upload movimentações -->
+    <div class="action-card">
+      <div class="action-card-title">📂 Importar Movimentações</div>
+      <div class="upload-zone" id="uploadMovZone">
+        <input type="file" id="fileMovInput" accept=".xlsx,.xls">
+        <div class="upload-icon">⬆️</div>
+        <div class="upload-label">
+          Arraste <strong>MOVIMENTACOES_DE_ESTQ.xlsx</strong><br>
+          ou <strong>clique para selecionar</strong>
+        </div>
+      </div>
+      <div class="loader" id="loaderMov">
+        <div class="loader-text" id="loaderMovText">processando…</div>
+        <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- Upload inventário -->
+    <div class="action-card">
+      <div class="action-card-title">🔒 Inventários</div>
+      <div class="upload-zone inv-zone" id="uploadInvZone">
+        <input type="file" id="fileInvInput" accept=".xlsx,.xls">
+        <div class="upload-icon">📋</div>
+        <div class="upload-label">
+          Arraste <strong>INVENTÁRIO.xlsx</strong><br>
+          ou <strong>clique para selecionar</strong><br>
+          <span style="font-size:11px;color:var(--text-dim)">A data é lida automaticamente do arquivo</span>
+        </div>
+      </div>
+      <div class="loader" id="loaderInv">
+        <div class="loader-text" id="loaderInvText">processando…</div>
+        <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+      </div>
+      <div class="inv-list" id="invList">
+        <div class="inv-empty">Nenhum inventário registrado</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Total de SKUs</div>
+        <div class="stat-value" id="statSkus">—</div>
+        <div class="stat-sub">produtos com movimentação</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Movimentações</div>
+        <div class="stat-value" id="statMovs">—</div>
+        <div class="stat-sub">registros no histórico</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Período</div>
+        <div class="stat-value" id="statAnos">—</div>
+        <div class="stat-sub" id="statDatas">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Último Inventário</div>
+        <div class="stat-value" id="statTrava">—</div>
+        <div class="stat-sub" id="statTravaSkus">—</div>
+      </div>
+    </div>
+
+    <div class="selector-row">
+      <div class="field-group">
+        <div class="field-label">Produto (SKU)</div>
+        <div class="search-wrap">
+          <input type="text" class="search-input" id="skuSearch" placeholder="Digite código ou nome…" autocomplete="off">
+          <div class="dropdown" id="skuDropdown"></div>
+        </div>
+      </div>
+      <div class="field-group" style="flex:0 0 auto;">
+        <div class="field-label">Escala de Tempo</div>
+        <div class="scale-btns">
+          <button class="scale-btn active" data-scale="week">Semanal</button>
+          <button class="scale-btn" data-scale="month">Mensal</button>
+        </div>
+      </div>
+      <div class="field-group" style="flex:0 0 auto;">
+        <div class="field-label">Período</div>
+        <div class="period-btns">
+          <button class="period-btn" data-p="30">30d</button>
+          <button class="period-btn" data-p="90">90d</button>
+          <button class="period-btn active" data-p="180">6m</button>
+          <button class="period-btn" data-p="365">1a</button>
+          <button class="period-btn" data-p="0">Tudo</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <div class="chart-title" id="chartTitle">Selecione um produto</div>
+          <div class="chart-sku" id="chartSku"></div>
+        </div>
+        <div class="chart-badges" id="chartBadges"></div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="stockChart"></canvas>
+        <div class="no-data" id="noData">Nenhum dado para exibir</div>
+      </div>
+    </div>
+
+    <div class="table-card" id="tableCard" style="display:none;">
+      <div class="table-header">
+        <span class="table-header-title">Movimentações por Período</span>
+        <span class="table-header-sub" id="tableSubtitle"></span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th id="thPeriod">Período</th>
+              <th>Saídas (qtd)</th>
+              <th>Entradas (qtd)</th>
+              <th>Saldo do Período</th>
+              <th>Saldo Acumulado</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer>Odara Alfajores · www.alfajoresodara.com.br</footer>
+</div>
+
+<div class="toast" id="toast">
+  <div class="toast-title" id="toastTitle"></div>
+  <div id="toastMsg"></div>
+</div>
+
+<script>
+// ─── Config ───────────────────────────────────────────────────────────────────
+const SB_URL = 'https://pnlixxptytbbsjcjqtqf.supabase.co';
+const SB_KEY = 'sb_publishable_LKBgWoHBxn3CxjoPhX4T_Q_LYk0mdDt';
+const SB_HDR = {
+  'Content-Type':'application/json',
+  'apikey': SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Prefer': 'return=minimal'
+};
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let skuMap       = {};  // { cod: { nome, rows:[{date,qty,origem}] } }
+let inventarios  = [];  // [{ id, data_inventario, total_skus, criado_em }]
+let invSaldoMap  = {};  // { cod: qtd } — saldo do último inventário
+let invDate      = null;// data do último inventário (string YYYY-MM-DD)
+let selectedSku  = null;
+let activeScale  = 'week';
+let activePeriod = 180;
+let chartInstance = null;
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(type, title, msg) {
+  const t = document.getElementById('toast');
+  t.className = `toast ${type} show`;
+  document.getElementById('toastTitle').textContent = title;
+  document.getElementById('toastMsg').textContent   = msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 6000);
+}
+
+// ─── Supabase helpers ─────────────────────────────────────────────────────────
+async function sbGet(table, params = '') {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, { headers: SB_HDR });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+async function sbPost(table, body) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}`, {
+    method: 'POST', headers: SB_HDR, body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+}
+async function sbDelete(table, params) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, {
+    method: 'DELETE', headers: SB_HDR
+  });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+// ─── Connection check ─────────────────────────────────────────────────────────
+async function checkConnection() {
+  try {
+    await sbGet('movimentacoes', 'limit=1');
+    document.getElementById('dbDot').className     = 'db-dot ok';
+    document.getElementById('dbLabel').textContent = 'banco conectado';
+  } catch {
+    document.getElementById('dbDot').className     = 'db-dot err';
+    document.getElementById('dbLabel').textContent = 'erro de conexão';
+  }
+}
+
+// ─── Inventários ──────────────────────────────────────────────────────────────
+async function loadInventarios() {
+  try {
+    inventarios = await sbGet('inventarios', 'order=data_inventario.desc');
+    await renderInventarios();
+  } catch(e) { console.error('Erro inventários:', e); }
+}
+
+async function renderInventarios() {
+  const list = document.getElementById('invList');
+
+  if (!inventarios.length) {
+    list.innerHTML = '<div class="inv-empty">Nenhum inventário registrado</div>';
+    document.getElementById('statTrava').textContent   = '—';
+    document.getElementById('statTravaSkus').textContent = '—';
+    document.getElementById('travaBar').style.display  = 'none';
+    invSaldoMap = {};
+    invDate     = null;
+    return;
+  }
+
+  list.innerHTML = inventarios.map(inv => `
+    <div class="inv-item">
+      <span class="inv-item-date">${fmtDate(inv.data_inventario)}</span>
+      <span class="inv-item-skus">${inv.total_skus} SKUs</span>
+      <span class="inv-item-obs">${inv.observacao || ''}</span>
+      <button class="inv-item-del" onclick="deleteInventario(${inv.id},'${inv.data_inventario}')" title="Remover inventário">✕</button>
+    </div>`).join('');
+
+  // Most recent inventory
+  const latest = inventarios[0];
+  invDate = latest.data_inventario;
+  document.getElementById('statTrava').textContent    = fmtDate(invDate);
+  document.getElementById('statTravaSkus').textContent = `${latest.total_skus} produtos contados`;
+
+  // Trava bar
+  const bar = document.getElementById('travaBar');
+  bar.style.display = 'block';
+  bar.innerHTML = `🔒 <strong>Trava ativa: ${fmtDate(invDate)}</strong> — dados anteriores são imutáveis. Novos uploads de movimentações substituem integralmente tudo após essa data.`;
+
+  // Load saldo map for latest inventory
+  await loadInvSaldo(invDate);
+}
+
+async function loadInvSaldo(date) {
+  try {
+    const rows = await sbGet('inventarios_saldo',
+      `data_inventario=eq.${date}&select=codigo_produto,quantidade`);
+    invSaldoMap = {};
+    rows.forEach(r => { invSaldoMap[r.codigo_produto] = parseFloat(r.quantidade); });
+  } catch(e) { console.error('Erro saldo inventário:', e); }
+}
+
+async function deleteInventario(id, date) {
+  if (!confirm(`Remover o inventário de ${fmtDate(date)}?\n\nIsso apagará o saldo registrado e removerá a trava dessa data.`)) return;
+  try {
+    await sbDelete('inventarios_saldo', `data_inventario=eq.${date}`);
+    await sbDelete('inventarios', `id=eq.${id}`);
+    inventarios = inventarios.filter(i => i.id !== id);
+    await renderInventarios();
+    showToast('success', 'Inventário removido', `O inventário de ${fmtDate(date)} foi excluído.`);
+    if (selectedSku) renderAll();
+  } catch(e) { showToast('error', 'Erro', e.message); }
+}
+
+// ─── Upload Inventário ────────────────────────────────────────────────────────
+const uploadInvZone = document.getElementById('uploadInvZone');
+const fileInvInput  = document.getElementById('fileInvInput');
+uploadInvZone.addEventListener('click', () => fileInvInput.click());
+uploadInvZone.addEventListener('dragover', e => { e.preventDefault(); uploadInvZone.classList.add('drag'); });
+uploadInvZone.addEventListener('dragleave', () => uploadInvZone.classList.remove('drag'));
+uploadInvZone.addEventListener('drop', e => { e.preventDefault(); uploadInvZone.classList.remove('drag'); handleInvFile(e.dataTransfer.files[0]); });
+fileInvInput.addEventListener('change', () => handleInvFile(fileInvInput.files[0]));
+
+async function handleInvFile(file) {
+  if (!file) return;
+  setLoader('inv', true, 'Lendo arquivo…');
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const wb   = XLSX.read(e.target.result, { type:'array', cellDates:true });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
+
+      if (!rows.length) { setLoader('inv', false); showToast('error','Arquivo vazio','Nenhuma linha encontrada.'); return; }
+
+      // Read inventory date from first row DATA column
+      let rawDate = rows[0]['DATA'];
+      let dateStr;
+      if (rawDate instanceof Date) {
+        dateStr = rawDate.toISOString().slice(0,10);
+      } else if (typeof rawDate === 'string' && rawDate.length >= 10) {
+        dateStr = rawDate.slice(0,10);
+      } else {
+        setLoader('inv', false);
+        showToast('error','Data não encontrada','Não foi possível ler a coluna DATA do arquivo.');
+        return;
+      }
+
+      // Parse rows — aggregate by SKU (sum quantities across all stock locations)
+      const skuAgg = {};
+      rows.forEach(row => {
+        const cod = String(row['código'] || '').trim();
+        if (!cod) return;
+        if (!skuAgg[cod]) {
+          skuAgg[cod] = {
+            data_inventario:   dateStr,
+            codigo_produto:    cod,
+            descricao_produto: String(row['descrição'] || '').trim(),
+            local_estoque:     'TODOS OS LOCAIS',
+            familia:           String(row['Família de Produto'] || '').trim(),
+            quantidade:        0,
+            custo_unit:        parseFloat(row['CUSTO UNIT']) || 0,
+            total:             0,
+            sped:              String(row['SPED'] || '').trim(),
+          };
+        }
+        skuAgg[cod].quantidade += parseFloat(row['Quantidade']) || 0;
+        skuAgg[cod].total      += parseFloat(row['TOTAL']) || 0;
+      });
+      const parsed = Object.values(skuAgg).map(r => ({
+        ...r,
+        quantidade: parseFloat(r.quantidade.toFixed(4)),
+        total:      parseFloat(r.total.toFixed(2)),
+      }));
+
+      if (!parsed.length) { setLoader('inv', false); showToast('error','Sem dados','Nenhum produto válido encontrado.'); return; }
+
+      // Confirm before overwriting if inventory for this date already exists
+      const existing = inventarios.find(i => i.data_inventario === dateStr);
+      if (existing) {
+        if (!confirm(`Já existe um inventário para ${fmtDate(dateStr)}.\nDeseja substituí-lo?`)) {
+          setLoader('inv', false); return;
+        }
+        await sbDelete('inventarios_saldo', `data_inventario=eq.${dateStr}`);
+        await sbDelete('inventarios', `id=eq.${existing.id}`);
+      }
+
+      // Save saldo rows in batches of 500
+      const BATCH = 500;
+      for (let i = 0; i < parsed.length; i += BATCH) {
+        setLoader('inv', true, `Salvando… ${Math.min(i+BATCH, parsed.length)}/${parsed.length}`);
+        await sbPost('inventarios_saldo', parsed.slice(i, i + BATCH));
+      }
+
+      // Save inventory header record
+      await sbPost('inventarios', {
+        data_inventario: dateStr,
+        total_skus: parsed.length,
+        observacao: `${parsed.length} produtos · upload ${new Date().toLocaleDateString('pt-BR')}`
+      });
+
+      setLoader('inv', false);
+      fileInvInput.value = '';
+      showToast('success', 'Inventário salvo!',
+        `${parsed.length} produtos registrados com trava em ${fmtDate(dateStr)}.`);
+
+      await loadInventarios();
+      if (selectedSku) renderAll();
+
+    } catch(err) { setLoader('inv', false); showToast('error','Erro no upload', err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ─── Upload Movimentações ─────────────────────────────────────────────────────
+const uploadMovZone = document.getElementById('uploadMovZone');
+const fileMovInput  = document.getElementById('fileMovInput');
+uploadMovZone.addEventListener('click', () => fileMovInput.click());
+uploadMovZone.addEventListener('dragover', e => { e.preventDefault(); uploadMovZone.classList.add('drag'); });
+uploadMovZone.addEventListener('dragleave', () => uploadMovZone.classList.remove('drag'));
+uploadMovZone.addEventListener('drop', e => { e.preventDefault(); uploadMovZone.classList.remove('drag'); handleMovFile(e.dataTransfer.files[0]); });
+fileMovInput.addEventListener('change', () => handleMovFile(fileMovInput.files[0]));
+
+async function handleMovFile(file) {
+  if (!file) return;
+  setLoader('mov', true, 'Lendo arquivo…');
+
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const wb   = XLSX.read(e.target.result, { type:'array', cellDates:true });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval:'' });
+
+      const parsed = rows.map(row => {
+        let d = row['Data (completa)'];
+        if (d instanceof Date) d = d.toISOString().slice(0,10);
+        else if (typeof d === 'string' && d.length >= 10) d = d.slice(0,10);
+        else return null;
+        const cod = String(row['Código do Produto'] || '').trim();
+        if (!cod || !d) return null;
+        return {
+          data:               d,
+          origem:             String(row['Origem'] || '').trim(),
+          nota_fiscal:        String(row['Nota Fiscal'] || '').trim(),
+          cliente_fornecedor: String(row['Cliente ou Fornecedor'] || '').trim(),
+          local_estoque_cod:  String(row['Local de Estoque (Código)'] || '').trim(),
+          local_estoque_desc: String(row['Local de Estoque (Descrição)'] || '').trim(),
+          codigo_produto:     cod,
+          descricao_produto:  String(row['Descrição do Produto'] || '').trim(),
+          tipo:               String(row['Tipo'] || '').trim(),
+          quantidade:         parseFloat(row['Quantidade']) || 0,
+          valor_movimento:    parseFloat(row['Valor do Movimento']) || 0,
+          tipo_sped:          String(row['tipo sped'] || '').trim(),
+          semana:             parseInt(row['Semana']) || null,
+          mes:                parseInt(row['Mês']) || null,
+          ano:                parseInt(row['Ano']) || null,
+          vlr_total:          parseFloat(row['Vlr Total']) || 0,
+        };
+      }).filter(Boolean);
+
+      if (!parsed.length) { setLoader('mov', false); showToast('error','Arquivo vazio','Nenhuma linha válida encontrada.'); return; }
+
+      // ── Verificar trava ──
+      if (invDate) {
+        const minDate = parsed.reduce((m, r) => r.data < m ? r.data : m, parsed[0].data);
+        if (minDate <= invDate) {
+          setLoader('mov', false);
+          showToast('error', '🔒 Upload bloqueado',
+            `O arquivo contém datas a partir de ${fmtDate(minDate)}, mas há uma trava em ${fmtDate(invDate)}. Exporte do OMIE apenas o período após essa data.`);
+          return;
+        }
+      }
+
+      // ── Apagar tudo após a trava e reinserir ──
+      setLoader('mov', true, 'Substituindo dados…');
+      if (invDate) {
+        await sbDelete('movimentacoes', `data=gt.${invDate}`);
+      } else {
+        await sbDelete('movimentacoes', 'id=gte.0');
+      }
+
+      const BATCH = 500;
+      for (let i = 0; i < parsed.length; i += BATCH) {
+        setLoader('mov', true, `Salvando… ${Math.min(i+BATCH, parsed.length)}/${parsed.length}`);
+        await sbPost('movimentacoes', parsed.slice(i, i + BATCH));
+      }
+
+      setLoader('mov', false);
+      fileMovInput.value = '';
+      showToast('success', 'Upload concluído!', `${parsed.length.toLocaleString('pt-BR')} registros importados.`);
+      await loadData();
+
+    } catch(err) { setLoader('mov', false); showToast('error', 'Erro no upload', err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function setLoader(which, show, text = '') {
+  const id = which === 'mov' ? 'loaderMov' : 'loaderInv';
+  const tid = which === 'mov' ? 'loaderMovText' : 'loaderInvText';
+  document.getElementById(id).style.display = show ? 'block' : 'none';
+  if (text) document.getElementById(tid).textContent = text;
+}
+
+// ─── Load SKU list from Supabase (lightweight — no row data) ──────────────────
+async function loadData() {
+  try {
+    setLoader('mov', true, 'Carregando produtos…');
+
+    // Fetch distinct SKUs using group-by via RPC isn't available in REST,
+    // so we fetch all rows but only the two lightweight columns we need,
+    // paging through to get everything, then deduplicate in JS.
+    let skuRows = [], from = 0, PAGE = 1000;
+    while (true) {
+      const res = await fetch(
+        `${SB_URL}/rest/v1/movimentacoes?select=codigo_produto,descricao_produto,data&order=data.asc`,
+        { headers: { ...SB_HDR, 'Range': `${from}-${from+PAGE-1}`, 'Range-Unit': 'items' } }
+      );
+      const chunk = await res.json();
+      if (!Array.isArray(chunk) || !chunk.length) break;
+      skuRows = skuRows.concat(chunk);
+      if (chunk.length < PAGE) break;
+      from += PAGE;
+    }
+
+    // Build skuMap with empty rows (filled on demand when user selects a product)
+    skuMap = {};
+    skuRows.forEach(r => {
+      if (!skuMap[r.codigo_produto])
+        skuMap[r.codigo_produto] = { nome: r.descricao_produto, rows: null };
+    });
+
+    // Stats
+    const dates = skuRows.map(r => r.data).sort();
+    document.getElementById('statSkus').textContent = Object.keys(skuMap).length;
+    document.getElementById('statMovs').textContent = skuRows.length.toLocaleString('pt-BR');
+    const y0 = dates[0]?.slice(0,4), y1 = dates[dates.length-1]?.slice(0,4);
+    document.getElementById('statAnos').textContent  = y0 ? (y0===y1 ? y0 : y0+'–'+y1) : '—';
+    document.getElementById('statDatas').textContent = dates.length ? fmtDate(dates[0])+' → '+fmtDate(dates[dates.length-1]) : '';
+
+    buildDropdown('');
+    document.getElementById('dashboard').style.display = 'block';
+    setLoader('mov', false);
+
+    // If a SKU was already selected (e.g. after upload), reload its data
+    if (selectedSku && skuMap[selectedSku]) {
+      skuMap[selectedSku].rows = null;
+      await selectSku(selectedSku, true);
+    }
+
+  } catch(e) { setLoader('mov', false); showToast('error', 'Erro ao carregar dados', e.message); }
+}
+
+// ─── Load rows for a single SKU on demand ────────────────────────────────────
+async function loadSkuRows(code) {
+  const res = await fetch(
+    `${SB_URL}/rest/v1/movimentacoes?codigo_produto=eq.${encodeURIComponent(code)}&select=data,origem,quantidade&order=data.asc`,
+    { headers: SB_HDR }
+  );
+  if (!res.ok) throw new Error(await res.text());
+  const rows = await res.json();
+  return rows.map(r => ({ date: r.data, qty: parseFloat(r.quantidade), origem: r.origem }));
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function fmtDate(d) {
+  if (!d || d.length < 10) return d;
+  const [y,m,dd] = d.split('-');
+  return `${dd}/${m}/${y}`;
+}
+function weekKey(dateStr) {
+  const d = new Date(dateStr+'T12:00:00'), day = d.getDay() || 7;
+  d.setDate(d.getDate() + 4 - day);
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const wk = Math.ceil(((d - jan1) / 86400000 + 1) / 7);
+  return `${d.getFullYear()}-W${String(wk).padStart(2,'0')}`;
+}
+function monthKey(d) { return d.slice(0,7); }
+function fmtWeekLabel(key) { const [y,w] = key.split('-W'); return w.padStart(2,'0')+'/'+y.slice(2); }
+function fmtMonthLabel(key) {
+  const m = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+  const [y,mo] = key.split('-');
+  return m[parseInt(mo)-1]+'/'+y.slice(2);
+}
+
+// ─── SKU Dropdown ─────────────────────────────────────────────────────────────
+const skuSearch   = document.getElementById('skuSearch');
+const skuDropdown = document.getElementById('skuDropdown');
+
+function buildDropdown(filter) {
+  const q = filter.toLowerCase();
+  const items = Object.entries(skuMap)
+    .filter(([c,i]) => !q || c.toLowerCase().includes(q) || i.nome.toLowerCase().includes(q))
+    .slice(0, 80);
+  skuDropdown.innerHTML = items.map(([c,i]) =>
+    `<div class="dropdown-item" data-code="${c}"><span class="sku-code">${c}</span><span class="sku-name">${i.nome}</span></div>`
+  ).join('');
+  skuDropdown.querySelectorAll('.dropdown-item').forEach(el =>
+    el.addEventListener('mousedown', e => { e.preventDefault(); selectSku(el.dataset.code); })
+  );
+}
+skuSearch.addEventListener('focus', () => { skuDropdown.classList.add('open'); buildDropdown(skuSearch.value); });
+skuSearch.addEventListener('blur',  () => setTimeout(() => skuDropdown.classList.remove('open'), 150));
+skuSearch.addEventListener('input', () => { skuDropdown.classList.add('open'); buildDropdown(skuSearch.value); });
+async function selectSku(code, forceReload = false) {
+  selectedSku = code;
+  skuSearch.value = `${code} · ${skuMap[code].nome}`;
+  skuDropdown.classList.remove('open');
+
+  // Show loading state in chart title while fetching
+  document.getElementById('chartTitle').textContent = 'Carregando…';
+  document.getElementById('chartSku').textContent   = code;
+  document.getElementById('chartBadges').innerHTML  = '';
+
+  // Fetch rows only if not already loaded
+  if (!skuMap[code].rows || forceReload) {
+    try {
+      skuMap[code].rows = await loadSkuRows(code);
+    } catch(e) {
+      showToast('error', 'Erro ao carregar produto', e.message);
+      return;
+    }
+  }
+
+  renderAll();
+}
+
+// ─── Scale + Period buttons ───────────────────────────────────────────────────
+document.querySelectorAll('.scale-btn').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.scale-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); activeScale = btn.dataset.scale;
+  if (selectedSku && skuMap[selectedSku]?.rows) renderAll();
+}));
+document.querySelectorAll('.period-btn').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active'); activePeriod = parseInt(btn.dataset.p);
+  if (selectedSku && skuMap[selectedSku]?.rows) renderAll();
+}));
+
+// ─── Aggregate ────────────────────────────────────────────────────────────────
+const ORIGENS_SAIDA   = new Set(['Movimento Manual de Estoque','Consumo da Ordem de Produção','Devolução ao Fornecedor']);
+const ORIGENS_ENTRADA = new Set(['Compra de Produto','Nota de Entrada de Produto']);
+
+function aggregate(rows, scale, periodDays) {
+  // Separate rows: before/on inv date vs after
+  const invBase = invDate ? (invSaldoMap[selectedSku] || 0) : 0;
+
+  // Only use rows AFTER inventory date (inventory itself is the base)
+  const postInv = invDate ? rows.filter(r => r.date > invDate) : rows;
+
+  // Period filter on post-inv rows
+  let filtered = postInv;
+  if (periodDays > 0) {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - periodDays);
+    const cutStr = cutoff.toISOString().slice(0,10);
+    // Never go before inventory date
+    const effectiveCut = invDate && cutStr < invDate ? invDate : cutStr;
+    filtered = postInv.filter(r => r.date > effectiveCut);
+  }
+
+  const buckets = {};
+  filtered.forEach(r => {
+    const key = scale === 'week' ? weekKey(r.date) : monthKey(r.date);
+    if (!buckets[key]) buckets[key] = { saidas:0, entradas:0, net:0 };
+    buckets[key].net += r.qty;
+    if (ORIGENS_SAIDA.has(r.origem))        buckets[key].saidas   += r.qty;
+    else if (ORIGENS_ENTRADA.has(r.origem)) buckets[key].entradas += r.qty;
+  });
+
+  const keys = Object.keys(buckets).sort();
+
+  // Cumulative from ALL post-inv rows (correct saldo even when period is filtered)
+  const fb = {};
+  postInv.forEach(r => {
+    const k = scale === 'week' ? weekKey(r.date) : monthKey(r.date);
+    if (!fb[k]) fb[k] = 0;
+    fb[k] += r.qty;
+  });
+  let acum = invBase; // start from inventory saldo
+  const am = {};
+  Object.keys(fb).sort().forEach(k => { acum += fb[k]; am[k] = acum; });
+
+  return keys.map(key => ({
+    key,
+    label:     scale === 'week' ? fmtWeekLabel(key) : fmtMonthLabel(key),
+    saidas:    parseFloat(buckets[key].saidas.toFixed(3)),
+    entradas:  parseFloat(buckets[key].entradas.toFixed(3)),
+    net:       parseFloat(buckets[key].net.toFixed(3)),
+    saldoAcum: parseFloat((am[key] || invBase).toFixed(3))
+  }));
+}
+
+// ─── Render chart + table ─────────────────────────────────────────────────────
+function renderAll() {
+  if (!selectedSku || !skuMap[selectedSku]?.rows) return;
+  const info    = skuMap[selectedSku];
+  const periods = aggregate(info.rows, activeScale, activePeriod);
+
+  const hasInvForSku = invDate && invSaldoMap[selectedSku] !== undefined;
+  const invQty = hasInvForSku ? invSaldoMap[selectedSku] : null;
+
+  if (!periods.length && invQty === null) {
+    document.getElementById('noData').style.display = 'block';
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    document.getElementById('tableCard').style.display = 'none';
+    return;
+  }
+  document.getElementById('noData').style.display = 'none';
+
+  const labels   = periods.map(p => p.label);
+  const balances = periods.map(p => p.saldoAcum);
+  const last  = balances.length ? balances[balances.length-1] : invQty || 0;
+  const first = balances.length ? balances[0] : last;
+  const diff  = last - first;
+  const pct   = first !== 0 ? ((diff / Math.abs(first)) * 100).toFixed(1) : '—';
+
+  document.getElementById('chartTitle').textContent = info.nome;
+  document.getElementById('chartSku').textContent   = selectedSku;
+
+  let bh = `<span class="badge badge-neu">Atual: ${last.toLocaleString('pt-BR',{maximumFractionDigits:2})}</span>`;
+  if (invQty !== null) bh += `<span class="badge badge-inv">Inv ${fmtDate(invDate)}: ${invQty.toLocaleString('pt-BR',{maximumFractionDigits:2})}</span>`;
+  if (diff !== 0 && balances.length > 1) {
+    bh += `<span class="badge ${diff>0?'badge-pos':'badge-neg'}">${diff>0?'+':''}${pct}%</span>`;
+  }
+  document.getElementById('chartBadges').innerHTML = bh;
+
+  const ctx = document.getElementById('stockChart').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+
+  // If we have inventory base, add it as a reference point at the start
+  const chartLabels   = labels;
+  const chartBalances = balances;
+  if (invQty !== null && labels.length) {
+    chartLabels.unshift(`inv ${fmtDate(invDate)}`);
+    chartBalances.unshift(invQty);
+  }
+
+  const grad = ctx.createLinearGradient(0, 0, 0, 320);
+  grad.addColorStop(0, 'rgba(201,168,76,0.22)');
+  grad.addColorStop(1, 'rgba(201,168,76,0.0)');
+
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: chartLabels,
+      datasets: [{
+        label: 'Saldo Acumulado',
+        data: chartBalances,
+        borderColor: '#c9a84c', borderWidth: 2,
+        pointRadius: chartLabels.length > 40 ? 0 : 3,
+        pointHoverRadius: 5, pointBackgroundColor: '#c9a84c',
+        tension: .3, fill: true, backgroundColor: grad,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: { duration: 400, easing: 'easeOutQuart' },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#232018', borderColor: '#2e2b24', borderWidth: 1,
+          titleColor: '#8a8070', bodyColor: '#f0ead8', padding: 12,
+          callbacks: {
+            title: i => i[0].label,
+            label: i => ' Saldo: ' + i.raw.toLocaleString('pt-BR', { maximumFractionDigits:3 })
+          }
+        }
+      },
+      scales: {
+        x: { grid:{color:'rgba(46,43,36,0.6)',drawTicks:false}, ticks:{color:'#5a5448',font:{family:'DM Sans',size:11},maxTicksLimit:12,maxRotation:0}, border:{color:'#2e2b24'} },
+        y: { grid:{color:'rgba(46,43,36,0.6)',drawTicks:false}, ticks:{color:'#5a5448',font:{family:'DM Sans',size:11},callback:v=>v.toLocaleString('pt-BR',{maximumFractionDigits:1})}, border:{color:'#2e2b24'} }
+      }
+    }
+  });
+
+  // ── Table ──
+  const sl = activeScale === 'week' ? 'semana' : 'mês';
+  document.getElementById('tableSubtitle').textContent = `por ${sl} · ${periods.length} períodos`;
+  document.getElementById('thPeriod').textContent = activeScale === 'week' ? 'Semana' : 'Mês';
+
+  const ts = periods.reduce((s,p)=>s+p.saidas,0);
+  const te = periods.reduce((s,p)=>s+p.entradas,0);
+  const tn = periods.reduce((s,p)=>s+p.net,0);
+  const fmt = n => n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:3});
+
+  let tbody = '';
+
+  // Inventory base row
+  if (invQty !== null) {
+    tbody += `<tr class="tr-inv">
+      <td>📋 Inventário ${fmtDate(invDate)}</td>
+      <td>—</td><td>—</td><td>—</td>
+      <td>${fmt(invQty)}</td>
+    </tr>`;
+  }
+
+  tbody += periods.map(p => `<tr>
+    <td>${p.label}</td>
+    <td class="td-neg">${fmt(p.saidas)}</td>
+    <td>${fmt(p.entradas)}</td>
+    <td style="color:${p.net>=0?'var(--positive)':'var(--negative)'}">${p.net>=0?'+':''}${fmt(p.net)}</td>
+    <td>${fmt(p.saldoAcum)}</td>
+  </tr>`).join('');
+
+  tbody += `<tr class="td-total">
+    <td>Total do período</td>
+    <td class="td-neg">${fmt(ts)}</td>
+    <td>${fmt(te)}</td>
+    <td style="color:${tn>=0?'var(--positive)':'var(--negative)'}">${tn>=0?'+':''}${fmt(tn)}</td>
+    <td>${fmt(last)}</td>
+  </tr>`;
+
+  document.getElementById('tableBody').innerHTML = tbody;
+  document.getElementById('tableCard').style.display = 'block';
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+(async () => {
+  await checkConnection();
+  await loadInventarios();
+  await loadData();
+})();
+</script>
+</body>
+</html>
