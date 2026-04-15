@@ -83,7 +83,7 @@
   .loader-text { font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); }
 
   /* Tab panels */
-  #tabDashboard, #tabMovimentacoes, #tabImportar, #tabInventarios { display:none; }
+  #tabMovimentacoes, #tabImportar, #tabInventarios { display:none; }
   .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:32px; }
   .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:20px 24px; }
   .stat-label { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px; }
@@ -413,36 +413,24 @@
   </div>
   <div class="sidebar-nav">
     <div class="nav-section">Principal</div>
-    <button class="nav-item active" data-tab="dashboard">
-      <span class="nav-icon">📊</span> Estoque
+    <button class="nav-item active" data-tab="gerencia">
+      <span class="nav-icon">🚦</span> Gerência de Estoque
     </button>
-    <button class="nav-item" data-tab="demanda">
-      <span class="nav-icon">📈</span> Demanda
-    </button>
-    <button class="nav-item" data-tab="movimentacoes">
-      <span class="nav-icon">📋</span> Movimentações
-    </button>
-    <div class="nav-section">Compras</div>
-    <button class="nav-item" data-tab="comprasagendadas">
-      <span class="nav-icon">🛒</span> Ordens de Compra
-    </button>
-    <button class="nav-item" data-tab="comprasprevistas">
-      <span class="nav-icon">📋</span> Compras Previstas
-    </button>
-    <button class="nav-item" data-tab="faturamento">
-      <span class="nav-icon">💰</span> Faturamento
-    </button>
-    <button class="nav-item" data-tab="metas">
-      <span class="nav-icon">🎯</span> Metas de Vendas
+    <button class="nav-item" data-tab="projecaomensal">
+      <span class="nav-icon">📈</span> Projeção Estoque
     </button>
     <button class="nav-item" data-tab="previsaoconsumo">
       <span class="nav-icon">📊</span> Previsão de Consumo
     </button>
-    <button class="nav-item" data-tab="projecaomensal">
-      <span class="nav-icon">📊</span> Projeção Mensal
+    <div class="nav-section">Tabelas</div>
+    <button class="nav-item" data-tab="faturamento">
+      <span class="nav-icon">💰</span> Faturamento
     </button>
-    <button class="nav-item" data-tab="gerencia">
-      <span class="nav-icon">🚦</span> Gerência de Estoque
+    <button class="nav-item" data-tab="movimentacoes">
+      <span class="nav-icon">📋</span> Movimentações
+    </button>
+    <button class="nav-item" data-tab="comprasagendadas">
+      <span class="nav-icon">🛒</span> Ordens de Compra
     </button>
     <div class="nav-section">Cadastros</div>
     <button class="nav-item" data-tab="cadastropp">
@@ -456,6 +444,9 @@
     </button>
     <button class="nav-item" data-tab="tags">
       <span class="nav-icon">🏷️</span> Tags
+    </button>
+    <button class="nav-item" data-tab="metas">
+      <span class="nav-icon">🎯</span> Metas de Vendas
     </button>
     <div class="nav-section">Dados</div>
     <button class="nav-item admin-only-nav" data-tab="importar">
@@ -486,191 +477,9 @@
 
   <div class="trava-bar" id="travaBar"></div>
 
-  <!-- Tab: Dashboard -->
-  <div id="tabDashboard">
-    <header>
-      <div><div class="page-title">Dashboard</div><div class="page-sub">Evolução de estoque por produto</div></div>
-      <div class="header-tag">Fase 1</div>
-    </header>
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-label">Total de SKUs</div>
-        <div class="stat-value" id="statSkus">—</div>
-        <div class="stat-sub">produtos com movimentação</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Movimentações</div>
-        <div class="stat-value" id="statMovs">—</div>
-        <div class="stat-sub">registros no histórico</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Período</div>
-        <div class="stat-value" id="statAnos">—</div>
-        <div class="stat-sub" id="statDatas">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Último Inventário</div>
-        <div class="stat-value" id="statTrava">—</div>
-        <div class="stat-sub" id="statTravaSkus">—</div>
-      </div>
-    </div>
 
-    <div class="selector-row">
-      <div class="field-group">
-        <div class="field-label">Produto (SKU)</div>
-        <div class="search-wrap">
-          <input type="text" class="search-input" id="skuSearch" placeholder="Digite código ou nome…" autocomplete="off">
-          <div class="dropdown" id="skuDropdown"></div>
-        </div>
-      </div>
-      <div class="field-group" style="flex:0 0 auto;">
-        <div class="field-label">Escala de Tempo</div>
-        <div class="scale-btns">
-          <button class="scale-btn active" data-scale="week">Semanal</button>
-          <button class="scale-btn" data-scale="month">Mensal</button>
-        </div>
-      </div>
-      <div class="field-group" style="flex:0 0 auto;">
-        <div class="field-label">Período</div>
-        <div class="period-btns">
-          <button class="period-btn" data-p="30">30d</button>
-          <button class="period-btn" data-p="90">90d</button>
-          <button class="period-btn active" data-p="180">6m</button>
-          <button class="period-btn" data-p="365">1a</button>
-          <button class="period-btn" data-p="0">Tudo</button>
-        </div>
-      </div>
-    </div>
 
-    <div class="chart-card">
-      <div class="chart-header">
-        <div>
-          <div class="chart-title" id="chartTitle">Selecione um produto</div>
-          <div class="chart-sku" id="chartSku"></div>
-        </div>
-        <div class="chart-badges" id="chartBadges"></div>
-      </div>
-      <div class="chart-wrap">
-        <canvas id="stockChart"></canvas>
-        <div class="no-data" id="noData">Nenhum dado para exibir</div>
-      </div>
-    </div>
 
-    <div class="table-card" id="tableCard" style="display:none;">
-      <div class="table-header">
-        <span class="table-header-title">Movimentações por Período</span>
-        <span class="table-header-sub" id="tableSubtitle"></span>
-      </div>
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th id="thPeriod">Período</th>
-              <th>Saídas (qtd)</th>
-              <th>Entradas (qtd)</th>
-              <th>Saldo do Período</th>
-              <th>Saldo Acumulado</th>
-            </tr>
-          </thead>
-          <tbody id="tableBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div><!-- /dashboard -->
-  </div><!-- /tabDashboard -->
-
-  <!-- Tab: Demanda -->
-  <div id="tabDemanda" style="display:none;">
-    <header>
-      <div><div class="page-title">Demanda</div><div class="page-sub">Histórico de faturamento por produto</div></div>
-    </header>
-
-    <!-- Mode selector -->
-    <div class="demand-controls">
-      <div class="demand-ctrl-group">
-        <div class="demand-ctrl-label">Modo de seleção</div>
-        <div class="demand-seg" id="demModeSegs">
-          <button class="active" data-mode="sku">SKU único</button>
-          <button data-mode="multi">Múltiplos SKUs</button>
-          <button data-mode="familia">Por Família</button>
-        </div>
-      </div>
-      <div class="demand-ctrl-group">
-        <div class="demand-ctrl-label">Escala</div>
-        <div class="demand-seg" id="demScaleSegs">
-          <button data-scale="semana">Semanal</button>
-          <button class="active" data-scale="mes">Mensal</button>
-        </div>
-      </div>
-      <div class="demand-ctrl-group">
-        <div class="demand-ctrl-label">Período</div>
-        <div class="demand-seg" id="demPeriodSegs">
-          <button data-period="3">3m</button>
-          <button data-period="6">6m</button>
-          <button class="active" data-period="12">1a</button>
-          <button data-period="24">2a</button>
-          <button data-period="0">Tudo</button>
-        </div>
-      </div>
-      <div class="demand-ctrl-group">
-        <div class="demand-ctrl-label">Unidade</div>
-        <div class="demand-seg" id="demUnitSegs">
-          <button class="active" data-unit="un">Unidades</button>
-          <button data-unit="cx">Caixas</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Família grid (hidden unless mode=familia) -->
-    <div id="demFamiliaWrap" style="display:none;">
-      <div class="demand-ctrl-label" style="margin-bottom:6px;">Selecione a família</div>
-      <div class="demand-family-grid" id="demFamiliaGrid"></div>
-    </div>
-
-    <!-- SKU search (hidden when mode=familia) -->
-    <div id="demSkuSearchWrap">
-      <div class="demand-ctrl-label" style="margin-bottom:6px;" id="demSkuSearchLabel">Buscar produto</div>
-      <div class="demand-search-wrap">
-        <input type="text" id="demSkuSearch" placeholder="Digite código ou nome…" autocomplete="off">
-        <div class="demand-sku-dropdown" id="demSkuDropdown"></div>
-      </div>
-    </div>
-
-    <!-- Selected tags -->
-    <div class="demand-tag-wrap" id="demTagWrap" style="margin-top:12px;"></div>
-
-    <!-- Chart -->
-    <div class="demand-chart-wrap" style="height:320px;position:relative;">
-      <canvas id="demChart"></canvas>
-      <div class="demand-chart-empty" id="demChartEmpty">Selecione um produto para visualizar a demanda</div>
-    </div>
-    <div class="demand-legend" id="demLegend" style="margin-bottom:16px;"></div>
-
-    <!-- Summary cards -->
-    <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;" id="demStats" style="display:none;">
-      <div class="stat-card"><div class="stat-label">Total Período</div><div class="stat-value" id="demStatTotal">—</div><div class="stat-sub" id="demStatTotalSub">—</div></div>
-      <div class="stat-card"><div class="stat-label">Média / Período</div><div class="stat-value" id="demStatMedia">—</div><div class="stat-sub">por semana/mês</div></div>
-      <div class="stat-card"><div class="stat-label">Mesmo Período Ano Ant.</div><div class="stat-value" id="demStatAntTotal">—</div><div class="stat-sub" id="demStatAntSub">variação</div></div>
-      <div class="stat-card"><div class="stat-label">Pico do Período</div><div class="stat-value" id="demStatPico">—</div><div class="stat-sub" id="demStatPicoSub">—</div></div>
-    </div>
-
-    <!-- Table -->
-    <div id="demTableWrap" style="display:none;">
-      <div class="demand-ctrl-label" style="margin-bottom:8px;">Detalhe por período</div>
-      <div class="demand-table-wrap">
-        <table class="demand-table" id="demTable">
-          <thead id="demTableHead"></thead>
-          <tbody id="demTableBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Empty state when no data -->
-    <div id="demEmptyState" class="demand-empty-state" style="display:none;">
-      Nenhum dado de faturamento encontrado para os filtros selecionados.<br>
-      <span style="font-size:12px;color:var(--text-dim);margin-top:8px;display:block">Certifique-se de que o arquivo FATURAMENTO.xlsx foi importado.</span>
-    </div>
-  </div><!-- /tabDemanda -->
 
   <!-- Tab: Movimentações -->
   <div id="tabMovimentacoes" style="display:none;">
@@ -1003,7 +812,7 @@
   <div id="tabProjecaoMensal" style="display:none;">
     <header>
       <div>
-        <div class="page-title" id="pmTitle">Projeção Mensal</div>
+        <div class="page-title" id="pmTitle">Projeção Estoque</div>
         <div class="page-sub" id="pmSubtitle">Visão consolidada de todos os materiais — mês a mês</div>
       </div>
       <div style="display:flex;gap:4px;align-items:center;">
@@ -1108,7 +917,7 @@
   </div><!-- /tabProjecaoMensal -->
 
   <!-- Tab: Gerência de Estoque -->
-  <div id="tabGerencia" style="display:none;">
+  <div id="tabGerencia">
     <header>
       <div>
         <div class="page-title">Gerência de Estoque</div>
@@ -2177,6 +1986,7 @@ async function showApp(profile) {
   await checkConnection();
   await loadInventarios();
   await loadData();
+  await loadGerencia();
 }
 
 async function handleLogin() {
@@ -2462,8 +2272,8 @@ async function renderInventarios() {
 
   if (!inventarios.length) {
     list.innerHTML = '<div class="inv-empty">Nenhum inventário registrado</div>';
-    document.getElementById('statTrava').textContent   = '—';
-    document.getElementById('statTravaSkus').textContent = '—';
+    if (document.getElementById('statTrava')) document.getElementById('statTrava').textContent = '—';
+    if (document.getElementById('statTravaSkus')) document.getElementById('statTravaSkus').textContent = '—';
     document.getElementById('travaBar').style.display  = 'none';
     invSaldoMap = {};
     invDate     = null;
@@ -2481,8 +2291,8 @@ async function renderInventarios() {
   // Most recent inventory
   const latest = inventarios[0];
   invDate = latest.data_inventario;
-  document.getElementById('statTrava').textContent    = fmtDate(invDate);
-  document.getElementById('statTravaSkus').textContent = `${latest.total_skus} produtos contados`;
+  if (document.getElementById('statTrava')) document.getElementById('statTrava').textContent = fmtDate(invDate);
+  if (document.getElementById('statTravaSkus')) document.getElementById('statTravaSkus').textContent = `${latest.total_skus} produtos contados`;
 
   // Trava bar
   const bar = document.getElementById('travaBar');
@@ -3137,16 +2947,7 @@ async function loadData() {
         skuMap[r.codigo_produto] = { nome: r.descricao_produto, rows: null };
     });
 
-    // Stats
-    const dates = skuRows.map(r => r.data).sort();
-    document.getElementById('statSkus').textContent = Object.keys(skuMap).length;
-    document.getElementById('statMovs').textContent = skuRows.length.toLocaleString('pt-BR');
-    const y0 = dates[0]?.slice(0,4), y1 = dates[dates.length-1]?.slice(0,4);
-    document.getElementById('statAnos').textContent  = y0 ? (y0===y1 ? y0 : y0+'–'+y1) : '—';
-    document.getElementById('statDatas').textContent = dates.length ? fmtDate(dates[0])+' → '+fmtDate(dates[dates.length-1]) : '';
-
     buildDropdown('');
-    document.getElementById('tabDashboard').style.display = 'block';
     setLoader('mov', false);
 
     // If a SKU was already selected (e.g. after upload), reload its data
@@ -3992,6 +3793,7 @@ const skuSearch   = document.getElementById('skuSearch');
 const skuDropdown = document.getElementById('skuDropdown');
 
 function buildDropdown(filter) {
+  if (!skuDropdown) return;
   const q = filter.toLowerCase();
   const items = Object.entries(skuMap)
     .filter(([c,i]) => !q || c.toLowerCase().includes(q) || i.nome.toLowerCase().includes(q))
@@ -4003,9 +3805,11 @@ function buildDropdown(filter) {
     el.addEventListener('mousedown', e => { e.preventDefault(); selectSku(el.dataset.code); })
   );
 }
-skuSearch.addEventListener('focus', () => { skuDropdown.classList.add('open'); buildDropdown(skuSearch.value); });
-skuSearch.addEventListener('blur',  () => setTimeout(() => skuDropdown.classList.remove('open'), 150));
-skuSearch.addEventListener('input', () => { skuDropdown.classList.add('open'); buildDropdown(skuSearch.value); });
+if (skuSearch) {
+  skuSearch.addEventListener('focus', () => { skuDropdown.classList.add('open'); buildDropdown(skuSearch.value); });
+  skuSearch.addEventListener('blur',  () => setTimeout(() => skuDropdown.classList.remove('open'), 150));
+  skuSearch.addEventListener('input', () => { skuDropdown.classList.add('open'); buildDropdown(skuSearch.value); });
+}
 async function selectSku(code, forceReload = false) {
   selectedSku = code;
   skuSearch.value = `${code} · ${skuMap[code].nome}`;
@@ -4276,13 +4080,10 @@ function renderAll() {
 
 // ─── Sidebar Nav ──────────────────────────────────────────────────────────────
 const TAB_MAP = {
-  dashboard:         'tabDashboard',
-  demanda:           'tabDemanda',
   movimentacoes:     'tabMovimentacoes',
   importar:          'tabImportar',
   inventarios:       'tabInventarios',
   comprasagendadas:  'tabComprasAgendadas',
-  comprasprevistas:  'tabComprasPrevistas',
   faturamento:       'tabFaturamento',
   metas:             'tabMetas',
   previsaoconsumo:   'tabPrevisaoConsumo',
@@ -4307,9 +4108,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
     const panel = document.getElementById(TAB_MAP[target]);
     if (panel) panel.style.display = 'block';
     if (target === 'movimentacoes') loadMovTable();
-    if (target === 'demanda') initDemandaDash();
     if (target === 'comprasagendadas') loadComprasTable();
-    if (target === 'comprasprevistas') loadComprasPrevistas();
     if (target === 'faturamento') loadFatTable();
     if (target === 'metas') loadMetasTab();
     if (target === 'previsaoconsumo') loadPrevisaoConsumo();
@@ -5778,6 +5577,7 @@ async function initDemandaDash(){
 }
 
 // ─── Controls wiring ──────────────────────────────────────────────────────────
+if (document.getElementById('demModeSegs')) {
 document.getElementById('demModeSegs').querySelectorAll('button').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.getElementById('demModeSegs').querySelectorAll('button').forEach(b=>b.classList.remove('active'));
@@ -5810,13 +5610,16 @@ document.getElementById('demUnitSegs').querySelectorAll('button').forEach(btn=>{
     btn.classList.add('active'); demUnit=btn.dataset.unit; renderDemanda();
   });
 });
+}
 
 // SKU search
 const demSkuSearchEl = document.getElementById('demSkuSearch');
 const demSkuDropEl   = document.getElementById('demSkuDropdown');
+if (demSkuSearchEl) {
 demSkuSearchEl.addEventListener('focus',()=>{buildDemSkuDropdown(demSkuSearchEl.value);demSkuDropEl.classList.add('open');});
 demSkuSearchEl.addEventListener('blur',()=>setTimeout(()=>demSkuDropEl.classList.remove('open'),150));
 demSkuSearchEl.addEventListener('input',()=>{buildDemSkuDropdown(demSkuSearchEl.value);demSkuDropEl.classList.add('open');});
+}
 
 function buildDemSkuDropdown(q){
   const qq=q.toLowerCase();
