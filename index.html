@@ -604,16 +604,8 @@
           <div class="loader-text" id="loaderFatText">processando…</div>
           <div class="loader-bar"><div class="loader-bar-fill"></div></div>
         </div>
-        <!-- Trava de faturamento -->
-        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
-          <div style="font-size:11px;color:var(--text-muted);letter-spacing:.08em;margin-bottom:8px;">🔒 TRAVA DE FATURAMENTO</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input type="date" id="fatTravaInput" class="form-input" style="max-width:180px;font-size:12px;padding:7px 10px;">
-            <button class="btn-save" id="btnSetFatTrava" style="font-size:11px;padding:8px 14px;">Definir trava</button>
-            <button class="btn-cancel" id="btnClearFatTrava" style="font-size:11px;padding:8px 14px;display:none;">✕ Remover</button>
-          </div>
-          <div id="fatTravaStatus" style="margin-top:8px;font-size:12px;color:var(--text-dim);"></div>
-        </div>
+        <!-- Trava (usa trava do inventário) -->
+        <div id="fatTravaStatus" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:12px;color:var(--text-dim);"></div>
       </div>
     </div>
   </div><!-- /tabImportar -->
@@ -641,14 +633,6 @@
         <button class="btn-new" id="btnNovaCompra">+ Nova Ordem</button>
       </div>
     </header>
-
-    <!-- Stats cards -->
-    <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px;" id="comprasStats">
-      <div class="stat-card"><div class="stat-label">Total de Pedidos</div><div class="stat-value" id="cStatPedidos">—</div><div class="stat-sub">ordens distintas</div></div>
-      <div class="stat-card"><div class="stat-label">Itens em Aberto</div><div class="stat-value" id="cStatItens">—</div><div class="stat-sub">linhas de pedido</div></div>
-      <div class="stat-card"><div class="stat-label">Valor Total</div><div class="stat-value" id="cStatValor">—</div><div class="stat-sub">R$ em aberto</div></div>
-      <div class="stat-card"><div class="stat-label">Fornecedores</div><div class="stat-value" id="cStatFornec">—</div><div class="stat-sub">envolvidos</div></div>
-    </div>
 
     <div class="mov-toolbar">
       <input type="text" class="mov-search" id="comprasSearch" placeholder="Buscar por produto, fornecedor, pedido…">
@@ -748,13 +732,6 @@
       <button class="btn-cancel" id="btnExportFat" style="font-size:11px;padding:8px 14px;">↓ Excel</button>
     </header>
 
-    <!-- Stats -->
-    <div class="stats-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px;">
-      <div class="stat-card"><div class="stat-label">Notas Fiscais</div><div class="stat-value" id="fStatNF">—</div><div class="stat-sub">distintas</div></div>
-      <div class="stat-card"><div class="stat-label">Itens</div><div class="stat-value" id="fStatItens">—</div><div class="stat-sub">linhas filtradas</div></div>
-      <div class="stat-card"><div class="stat-label">Valor Total</div><div class="stat-value" id="fStatValor">—</div><div class="stat-sub">R$ faturado</div></div>
-      <div class="stat-card"><div class="stat-label">Clientes</div><div class="stat-value" id="fStatClientes">—</div><div class="stat-sub">distintos</div></div>
-    </div>
 
     <div class="mov-toolbar">
       <input type="text" class="mov-search" id="fatSearch" placeholder="Buscar por produto, cliente, nota fiscal…">
@@ -878,26 +855,6 @@
           <span><span style="display:inline-block;width:11px;height:11px;background:rgba(255,184,28,.28);border-radius:2px;vertical-align:middle;margin-right:5px;"></span>Estoque baixo</span>
           <span><span style="display:inline-block;width:11px;height:11px;background:rgba(30,127,50,.1);border-radius:2px;vertical-align:middle;margin-right:5px;"></span>OK</span>
         </div>
-      </div>
-    </div>
-
-    <!-- Stats rápidos -->
-    <div id="pmStats" style="display:none;gap:12px;flex-wrap:wrap;margin-bottom:20px;">
-      <div class="stat-card" style="flex:1;min-width:130px;padding:14px 18px;">
-        <div class="stat-label">Materiais</div>
-        <div class="stat-value" id="pmStatMat">—</div>
-      </div>
-      <div class="stat-card" style="flex:1;min-width:130px;padding:14px 18px;">
-        <div class="stat-label">Com Ruptura Prevista</div>
-        <div class="stat-value" style="color:var(--negative);" id="pmStatNeg">—</div>
-      </div>
-      <div class="stat-card" style="flex:1;min-width:130px;padding:14px 18px;">
-        <div class="stat-label">Estoque Baixo</div>
-        <div class="stat-value" style="color:var(--warning);" id="pmStatBaixo">—</div>
-      </div>
-      <div class="stat-card" style="flex:1;min-width:130px;padding:14px 18px;">
-        <div class="stat-label">Período projetado</div>
-        <div class="stat-value" style="font-size:16px;" id="pmStatPeriodo">—</div>
       </div>
     </div>
 
@@ -2297,7 +2254,7 @@ async function renderInventarios() {
   // Trava bar
   const bar = document.getElementById('travaBar');
   bar.style.display = 'block';
-  bar.innerHTML = `🔒 <strong>Trava ativa: ${fmtDate(invDate)}</strong> — dados anteriores são imutáveis. Novos uploads de movimentações substituem integralmente tudo após essa data.`;
+  bar.innerHTML = `🔒 <strong>Trava ativa: ${fmtDate(invDate)}</strong> — dados anteriores são imutáveis. Novas importações (movimentações e faturamento) substituem apenas dados após essa data.`;
 
   // Load saldo map for latest inventory
   await loadInvSaldo(invDate);
@@ -2826,44 +2783,21 @@ async function handleFatFile(file) {
   reader.readAsArrayBuffer(file);
 }
 
-// ─── Trava de Faturamento ────────────────────────────────────────────────────
-const FAT_TRAVA_KEY = 'odara_fat_trava';
-
-function getFatTrava() { return localStorage.getItem(FAT_TRAVA_KEY) || null; }
+// ─── Trava de Faturamento (usa trava do inventário) ─────────────────────────
+function getFatTrava() { return invDate || null; }
 
 function renderFatTravaStatus() {
   const trava = getFatTrava();
   const status = document.getElementById('fatTravaStatus');
-  const btnClear = document.getElementById('btnClearFatTrava');
-  const input = document.getElementById('fatTravaInput');
   if (!status) return;
   if (trava) {
-    status.innerHTML = `<span style="color:var(--warning)">🔒 Trava ativa: <strong>${fmtDate(trava)}</strong> — importações substituirão apenas dados após essa data.</span>`;
-    btnClear.style.display = 'inline-block';
-    input.value = trava;
+    status.innerHTML = `<span style="color:var(--warning)">🔒 Trava ativa: <strong>${fmtDate(trava)}</strong> (inventário) — importação substituirá apenas dados após essa data.</span>`;
   } else {
-    status.innerHTML = '<span style="color:var(--text-dim)">Sem trava — importação substitui todo o histórico.</span>';
-    btnClear.style.display = 'none';
-    input.value = '';
+    status.innerHTML = '<span style="color:var(--text-dim)">Sem trava (nenhum inventário registrado) — importação substitui todo o histórico.</span>';
   }
 }
 
-document.getElementById('btnSetFatTrava').addEventListener('click', () => {
-  const val = document.getElementById('fatTravaInput').value;
-  if (!val) { showToast('warning','Data inválida','Selecione uma data para a trava.'); return; }
-  localStorage.setItem(FAT_TRAVA_KEY, val);
-  renderFatTravaStatus();
-  showToast('success','Trava definida!',`Faturamento travado em ${fmtDate(val)}.`);
-});
-
-document.getElementById('btnClearFatTrava').addEventListener('click', () => {
-  localStorage.removeItem(FAT_TRAVA_KEY);
-  renderFatTravaStatus();
-  showToast('success','Trava removida','Próxima importação substituirá todo o histórico.');
-});
-
 // Renderizar status ao abrir a aba Importar
-const _origSwitchTab = document.querySelectorAll('.nav-item');
 document.querySelectorAll('.nav-item[data-tab="importar"]').forEach(btn => {
   btn.addEventListener('click', () => setTimeout(renderFatTravaStatus, 100));
 });
@@ -5191,10 +5125,10 @@ function updateCAStats(){
   const pedidos=new Set(caFiltered.map(r=>r.pedido_compra)).size;
   const valor=caFiltered.reduce((s,r)=>s+(parseFloat(r.vlr_compra)||0),0);
   const fornec=new Set(caFiltered.map(r=>r.fornecedor)).size;
-  document.getElementById('cStatPedidos').textContent=pedidos;
-  document.getElementById('cStatItens').textContent=caFiltered.length;
-  document.getElementById('cStatValor').textContent='R$ '+valor.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
-  document.getElementById('cStatFornec').textContent=fornec;
+  (document.getElementById('cStatPedidos')||{}).textContent=pedidos;
+  (document.getElementById('cStatItens')||{}).textContent=caFiltered.length;
+  (document.getElementById('cStatValor')||{}).textContent='R$ '+valor.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+  (document.getElementById('cStatFornec')||{}).textContent=fornec;
 }
 
 function updateCAFiltersIndicator(){
@@ -5412,10 +5346,10 @@ function updateFatStats(rows){
   const nfs=new Set(rows.map(r=>r.nota_fiscal)).size;
   const valor=rows.reduce((s,r)=>s+(parseFloat(r.total_nf)||0),0);
   const cli=new Set(rows.map(r=>r.cliente)).size;
-  document.getElementById('fStatNF').textContent=nfs.toLocaleString('pt-BR');
-  document.getElementById('fStatItens').textContent=rows.length.toLocaleString('pt-BR');
-  document.getElementById('fStatValor').textContent='R$ '+valor.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
-  document.getElementById('fStatClientes').textContent=cli.toLocaleString('pt-BR');
+  (document.getElementById('fStatNF')||{}).textContent=nfs.toLocaleString('pt-BR');
+  (document.getElementById('fStatItens')||{}).textContent=rows.length.toLocaleString('pt-BR');
+  (document.getElementById('fStatValor')||{}).textContent='R$ '+valor.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+  (document.getElementById('fStatClientes')||{}).textContent=cli.toLocaleString('pt-BR');
 }
 
 function updateFatFiltersIndicator(){
@@ -6424,7 +6358,7 @@ async function loadProjecaoSemanal() {
   loadEl.style.display = 'block';
   wrapEl.style.display = 'none';
   document.getElementById('pmEmpty').style.display = 'none';
-  document.getElementById('pmStats').style.display = 'none';
+  (document.getElementById('pmStats')||{style:{}}).style.display = 'none';
 
   try {
     const fetchAll = async (tabela, filtro) => {
@@ -6530,7 +6464,7 @@ async function loadProjecaoMensal() {
   loadEl.style.display = 'block';
   wrapEl.style.display = 'none';
   document.getElementById('pmEmpty').style.display = 'none';
-  document.getElementById('pmStats').style.display = 'none';
+  (document.getElementById('pmStats')||{style:{}}).style.display = 'none';
 
   try {
     const fetchAll = async (tabela, filtro) => {
@@ -6605,7 +6539,7 @@ function renderProjecaoMensal() {
   const loadEl  = document.getElementById('pmLoading');
   const wrapEl  = document.getElementById('pmWrap');
   const emptyEl = document.getElementById('pmEmpty');
-  const statsEl = document.getElementById('pmStats');
+  const statsEl = document.getElementById('pmStats') || {style:{}};
   const infoEl  = document.getElementById('pmInfo');
 
   // Escolhe dados conforme o modo
@@ -6697,10 +6631,10 @@ function renderProjecaoMensal() {
     else if (temBaixo) qtdBaixo++;
   });
 
-  document.getElementById('pmStatMat').textContent    = materiais.length;
-  document.getElementById('pmStatNeg').textContent    = qtdNeg;
-  document.getElementById('pmStatBaixo').textContent  = qtdBaixo;
-  document.getElementById('pmStatPeriodo').textContent =
+  (document.getElementById('pmStatMat')||{}).textContent    = materiais.length;
+  (document.getElementById('pmStatNeg')||{}).textContent    = qtdNeg;
+  (document.getElementById('pmStatBaixo')||{}).textContent  = qtdBaixo;
+  (document.getElementById('pmStatPeriodo')||{}).textContent =
     `${fmtLabel(periodos[0])} → ${fmtLabel(periodos[periodos.length-1])}`;
   statsEl.style.display = 'flex';
 
