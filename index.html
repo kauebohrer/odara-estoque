@@ -397,8 +397,11 @@
     <input class="login-field" id="loginNome" type="text" placeholder="Seu nome" style="display:none;">
     <input class="login-field" id="loginEmail" type="email" placeholder="Email">
     <input class="login-field" id="loginSenha" type="password" placeholder="Senha">
-    <button class="login-btn" id="loginBtn" onclick="handleLogin()">Entrar</button>
+    <button class="login-btn" id="loginBtn" data-mode="login" onclick="handleLogin()">Entrar</button>
     <div class="login-error" id="loginError"></div>
+    <div id="loginSetupLink" style="margin-top:16px;font-size:12px;color:var(--text-muted);">
+      Primeiro acesso? <a href="#" onclick="switchToSetup();return false;" style="color:var(--gold);text-decoration:underline;cursor:pointer;">Criar administrador</a>
+    </div>
   </div>
 </div>
 
@@ -2233,16 +2236,32 @@ function showLoginScreen(setupMode) {
   document.getElementById('appSidebar').style.display = 'none';
   document.getElementById('appMain').style.display = 'none';
   if (setupMode) {
-    document.getElementById('loginSetupMsg').style.display = 'block';
-    document.getElementById('loginNome').style.display = 'block';
-    document.getElementById('loginBtn').textContent = 'Criar Administrador';
-    document.getElementById('loginBtn').setAttribute('data-mode','setup');
+    switchToSetup();
   } else {
     document.getElementById('loginSetupMsg').style.display = 'none';
     document.getElementById('loginNome').style.display = 'none';
     document.getElementById('loginBtn').textContent = 'Entrar';
     document.getElementById('loginBtn').setAttribute('data-mode','login');
+    document.getElementById('loginSetupLink').style.display = 'block';
   }
+}
+
+function switchToSetup() {
+  document.getElementById('loginSetupMsg').style.display = 'block';
+  document.getElementById('loginNome').style.display = 'block';
+  document.getElementById('loginBtn').textContent = 'Criar Administrador';
+  document.getElementById('loginBtn').setAttribute('data-mode','setup');
+  document.getElementById('loginSetupLink').innerHTML = 'Já tem conta? <a href="#" onclick="switchToLogin();return false;" style="color:var(--gold);text-decoration:underline;cursor:pointer;">Fazer login</a>';
+  document.getElementById('loginError').textContent = '';
+}
+
+function switchToLogin() {
+  document.getElementById('loginSetupMsg').style.display = 'none';
+  document.getElementById('loginNome').style.display = 'none';
+  document.getElementById('loginBtn').textContent = 'Entrar';
+  document.getElementById('loginBtn').setAttribute('data-mode','login');
+  document.getElementById('loginSetupLink').innerHTML = 'Primeiro acesso? <a href="#" onclick="switchToSetup();return false;" style="color:var(--gold);text-decoration:underline;cursor:pointer;">Criar administrador</a>';
+  document.getElementById('loginError').textContent = '';
 }
 
 async function showApp(profile) {
@@ -2273,7 +2292,7 @@ async function handleLogin() {
   const errEl = document.getElementById('loginError');
   const email = document.getElementById('loginEmail').value.trim();
   const senha = document.getElementById('loginSenha').value;
-  const mode = btn.getAttribute('data-mode');
+  const mode = btn.getAttribute('data-mode') || 'login';
 
   errEl.textContent = '';
   if (!email || !senha) { errEl.textContent = 'Preencha email e senha'; return; }
@@ -2305,7 +2324,8 @@ async function handleLogin() {
     const profile = await loadUserProfile();
     await showApp(profile);
   } catch (e) {
-    errEl.textContent = e.message;
+    console.error('Login error:', e);
+    errEl.textContent = e.message || 'Erro ao conectar. Tente novamente.';
     btn.disabled = false;
     btn.textContent = mode === 'setup' ? 'Criar Administrador' : 'Entrar';
   }
