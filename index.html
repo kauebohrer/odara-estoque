@@ -2305,7 +2305,7 @@ async function handleLogin() {
     if (mode === 'setup') {
       const nome = document.getElementById('loginNome').value.trim();
       if (!nome) { errEl.textContent = 'Preencha seu nome'; btn.disabled = false; btn.textContent = 'Criar Administrador'; return; }
-      // Use secure Edge Function for first admin setup
+      // Step 1: Create admin via Edge Function
       const r = await fetch(SB_URL + '/functions/v1/setup-admin', {
         method:'POST',
         headers:{'Content-Type':'application/json','apikey':SB_KEY},
@@ -2313,11 +2313,8 @@ async function handleLogin() {
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || 'Erro ao criar admin');
-      authToken = data.access_token;
-      authUser  = data.user;
-      localStorage.setItem('sb_token', authToken);
-      localStorage.setItem('sb_refresh', data.refresh_token);
-      updateSBHeaders();
+      // Step 2: Do a normal login to get proper tokens
+      await authLogin(email, senha);
     } else {
       await authLogin(email, senha);
     }
