@@ -2363,16 +2363,20 @@ async function loadUsuariosTab() {
       const isSelf = u.id === authUser.id;
       const dt = new Date(u.criado_em);
       const dtStr = dt.toLocaleDateString('pt-BR');
-      return '<tr>' +
-        '<td style="font-weight:500;color:var(--text)">' + (u.nome || '—') + (isSelf ? ' <span style="font-size:10px;color:var(--gold);">(você)</span>' : '') + '</td>' +
-        '<td>' + u.email + '</td>' +
-        '<td><span class="usr-badge ' + u.perfil + '">' + u.perfil + '</span></td>' +
-        '<td>' + dtStr + '</td>' +
-        '<td class="usr-actions">' +
-          (isSelf ? '' : '<button onclick="togglePerfil('' + u.id + '','' + u.perfil + '')" title="Alterar perfil">🔄</button>') +
-          (isSelf ? '' : '<button onclick="resetarSenha('' + u.id + '','' + (u.nome||u.email) + '')" title="Resetar senha">🔑</button>') +
-          (isSelf ? '' : '<button onclick="excluirUsuario('' + u.id + '','' + (u.nome||u.email) + '')" title="Excluir">🗑</button>') +
-        '</td></tr>';
+      const nome = u.nome || u.email;
+      let actions = '';
+      if (!isSelf) {
+        actions = `<button onclick="togglePerfil('${u.id}','${u.perfil}')" title="Alterar perfil">🔄</button>` +
+                  `<button onclick="resetarSenha('${u.id}','${nome.replace(/'/g,'')}')" title="Resetar senha">🔑</button>` +
+                  `<button onclick="excluirUsuario('${u.id}','${nome.replace(/'/g,'')}')" title="Excluir">🗑</button>`;
+      }
+      return `<tr>
+        <td style="font-weight:500;color:var(--text)">${u.nome || '—'}${isSelf ? ' <span style="font-size:10px;color:var(--gold);">(você)</span>' : ''}</td>
+        <td>${u.email}</td>
+        <td><span class="usr-badge ${u.perfil}">${u.perfil}</span></td>
+        <td>${dtStr}</td>
+        <td class="usr-actions">${actions}</td>
+      </tr>`;
     }).join('');
   } catch(e) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--negative);">Erro: ' + e.message + '</td></tr>';
