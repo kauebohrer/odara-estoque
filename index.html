@@ -2762,6 +2762,15 @@ async function handleComprasFile(file) {
 
       function findCol(row, keys) {
         for (const k of keys) if (k in row) return row[k];
+        // Fuzzy: normalize and compare
+        const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
+        const rowKeys = Object.keys(row);
+        for (const k of keys) {
+          const nk = norm(k);
+          for (const rk of rowKeys) {
+            if (norm(rk) === nk || norm(rk).includes(nk)) return row[rk];
+          }
+        }
         return '';
       }
 
@@ -2770,8 +2779,11 @@ async function handleComprasFile(file) {
       const parsed = raw.map(row => {
         const prev = findCol(row, colMap.prev_entrega);
         let prevStr = '';
-        if (prev instanceof Date) {
+        if (prev instanceof Date || Object.prototype.toString.call(prev) === '[object Date]') {
           prevStr = prev.toISOString().slice(0,10);
+        } else if (typeof prev === 'string' && /^\d{4}-\d{2}-\d{2}/.test(prev)) {
+          // ISO format: "2026-04-08" or "2026-04-08T00:00:00.000Z"
+          prevStr = prev.slice(0,10);
         } else if (typeof prev === 'string' && prev.includes('/')) {
           const [d,m,y] = prev.split('/');
           prevStr = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
@@ -2780,7 +2792,13 @@ async function handleComprasFile(file) {
           const d = new Date((prev - 25569) * 86400 * 1000);
           prevStr = d.toISOString().slice(0,10);
         } else {
-          prevStr = String(prev).slice(0,10);
+          // Last resort: try to parse as Date
+          const tryDate = new Date(prev);
+          if (!isNaN(tryDate)) {
+            prevStr = tryDate.toISOString().slice(0,10);
+          } else {
+            prevStr = String(prev).slice(0,10);
+          }
         }
 
         const dt = new Date(prevStr + 'T12:00:00');
