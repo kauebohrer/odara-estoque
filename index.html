@@ -438,9 +438,6 @@
     <button class="nav-item" data-tab="previsaoconsumo">
       <span class="nav-icon">📊</span> Previsão de Consumo
     </button>
-    <button class="nav-item" data-tab="projecaoestoque">
-      <span class="nav-icon">📈</span> Projeção de Estoque
-    </button>
     <button class="nav-item" data-tab="projecaomensal">
       <span class="nav-icon">📊</span> Projeção Mensal
     </button>
@@ -1000,112 +997,7 @@
     </div>
   </div><!-- /tabFaturamento -->
 
-  <!-- Tab: Projeção de Estoque -->
-  <div id="tabProjecaoEstoque" style="display:none;">
-    <header>
-      <div>
-        <div class="page-title">Projeção de Estoque</div>
-        <div class="page-sub">Saldo realizado + consumo previsto pelas metas + entradas de compras agendadas</div>
-      </div>
-      <button class="btn-cancel" id="btnExportProjecaoTabela" style="font-size:11px;padding:8px 14px;">↓ Excel</button>
-      <button class="btn-cancel" id="btnRecalcularProjecao" style="font-size:11px;padding:8px 14px;">🔄 Recalcular</button>
-    </header>
 
-    <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;margin-bottom:24px;">
-      <div>
-        <div class="field-label" style="margin-bottom:6px;">Tipo</div>
-        <select class="form-select" id="projFiltroTipo" style="width:160px;font-size:12px;padding:7px 8px;" onchange="onProjTipoChange()">
-          <option value="">Todos</option>
-          <option value="Matéria Prima">Matéria Prima</option>
-          <option value="Embalagem">Embalagem</option>
-        </select>
-      </div>
-      <div style="flex:1;min-width:280px;max-width:500px;position:relative;">
-        <div class="field-label" style="margin-bottom:6px;">Material</div>
-        <button class="form-select" id="projMatBtn" onclick="toggleProjMatDropdown(event)"
-          style="width:100%;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:7px 8px;">
-          <span id="projMatLabel">Selecione um material…</span><span>▾</span>
-        </button>
-        <div class="col-filter-dropdown" id="projMatDropdown" style="width:100%;max-height:360px;">
-          <div class="col-filter-search-wrap">
-            <input type="text" class="col-filter-search" id="projMatSearch" placeholder="Buscar material…" oninput="renderProjMatList()">
-          </div>
-          <div class="col-filter-list" id="projMatList"></div>
-        </div>
-      </div>
-      <div>
-        <div class="field-label" style="margin-bottom:6px;">Ano de referência (metas)</div>
-        <div class="metas-year-seg" id="projAnoSeg"></div>
-      </div>
-      <div>
-        <div class="field-label" style="margin-bottom:6px;">Histórico (dias atrás)</div>
-        <select class="form-select" id="projDiasAtras" style="width:140px;font-size:12px;padding:7px 8px;">
-          <option value="30">30 dias</option>
-          <option value="60">60 dias</option>
-          <option value="90" selected>90 dias</option>
-        </select>
-      </div>
-      <div>
-        <div class="field-label" style="margin-bottom:6px;">Horizonte futuro</div>
-        <select class="form-select" id="projDiasFrente" style="width:140px;font-size:12px;padding:7px 8px;">
-          <option value="30">30 dias</option>
-          <option value="60">60 dias</option>
-          <option value="90" selected>90 dias</option>
-        </select>
-      </div>
-    </div>
-
-    <div id="projAlerts" style="margin-bottom:12px;"></div>
-
-    <!-- Cards de resumo -->
-    <div id="projCards" style="display:none;margin-bottom:24px;">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;">
-        <div class="action-card" style="flex:1;min-width:140px;padding:16px 20px;">
-          <div class="stat-label">Saldo Atual</div>
-          <div style="font-size:24px;font-family:'DM Serif Display',serif;color:var(--gold-light)" id="projSaldoAtual">—</div>
-        </div>
-        <div class="action-card" style="flex:1;min-width:140px;padding:16px 20px;">
-          <div class="stat-label">Consumo Previsto (ano)</div>
-          <div style="font-size:24px;font-family:'DM Serif Display',serif;color:var(--warning)" id="projConsumoPrev">—</div>
-        </div>
-        <div class="action-card" style="flex:1;min-width:140px;padding:16px 20px;">
-          <div class="stat-label">Compras Agendadas (ano)</div>
-          <div style="font-size:24px;font-family:'DM Serif Display',serif;color:var(--positive)" id="projComprasAgen">—</div>
-        </div>
-        <div class="action-card" style="flex:1;min-width:140px;padding:16px 20px;">
-          <div class="stat-label">Saldo Final Previsto</div>
-          <div style="font-size:24px;font-family:'DM Serif Display',serif;" id="projSaldoFinal">—</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Gráfico -->
-    <div class="chart-card" id="projChartCard" style="display:none;">
-      <div class="chart-wrap" style="height:380px;">
-        <canvas id="projChart"></canvas>
-      </div>
-    </div>
-
-    <!-- Tabela mensal -->
-    <div id="projTabela" style="display:none;margin-top:24px;">
-      <div style="font-size:11px;color:var(--text-muted);letter-spacing:.08em;margin-bottom:8px;">DETALHAMENTO MENSAL</div>
-      <div class="mov-table-wrap">
-        <table class="mov-table" id="projTabelaInner">
-          <thead>
-            <tr>
-              <th>Mês</th>
-              <th style="text-align:right">Saldo Inicial</th>
-              <th style="text-align:right;color:var(--positive)">+ Compras</th>
-              <th style="text-align:right;color:var(--warning)">− Consumo</th>
-              <th style="text-align:right">= Saldo Final</th>
-              <th style="text-align:center">Tipo</th>
-            </tr>
-          </thead>
-          <tbody id="projTabelaBody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div><!-- /tabProjecaoEstoque -->
 
   <!-- Tab: Projeção Mensal -->
   <div id="tabProjecaoMensal" style="display:none;">
@@ -3675,329 +3567,10 @@ document.addEventListener('change', e => {
   if (e.target.id === 'gerFiltroTipo' || e.target.id === 'gerFiltroFarol') { buildGerMatOpcoes(); renderGerencia(); }
 });
 
-let projAno = new Date().getFullYear();
-let projChartInstance = null;
-let projMatOpcoes = [];
-let projMatSelecionado = '';
-
-function onProjTipoChange() {
-  // Ao mudar tipo, reseta material selecionado e reconstrói lista
-  projMatSelecionado = '';
-  document.getElementById('projMatLabel').textContent = 'Selecione um material…';
-  document.getElementById('projCards').style.display = 'none';
-  document.getElementById('projChartCard').style.display = 'none';
-  document.getElementById('projTabela').style.display = 'none';
-  document.getElementById('projAlerts').innerHTML = '';
-  renderProjMatList();
-}
-
-function toggleProjMatDropdown(e) {
-  e.stopPropagation();
-  const dd = document.getElementById('projMatDropdown');
-  const isOpen = dd.classList.contains('open');
-  document.querySelectorAll('.col-filter-dropdown.open').forEach(el => el.classList.remove('open'));
-  if (!isOpen) {
-    dd.classList.add('open');
-    document.getElementById('projMatSearch').value = '';
-    renderProjMatList();
-    setTimeout(() => document.getElementById('projMatSearch').focus(), 50);
-  }
-}
-
-function renderProjMatList() {
-  const tipo  = document.getElementById('projFiltroTipo')?.value || '';
-  const busca = (document.getElementById('projMatSearch')?.value || '').toLowerCase();
-  const lista = document.getElementById('projMatList');
-  const filtradas = projMatOpcoes
-    .filter(o => (!tipo || o.tipo === tipo) && (!busca || o.label.toLowerCase().includes(busca)));
-  if (!filtradas.length) {
-    lista.innerHTML = '<div style="padding:12px 14px;font-size:12px;color:var(--text-muted);">Nenhum material encontrado.</div>';
-    return;
-  }
-  lista.innerHTML = filtradas.map(o => `
-    <div class="col-filter-item"
-      data-cod="${o.codigo}" data-label="${o.label.replace(/"/g,'&quot;')}"
-      onclick="selectProjMat(this.dataset.cod, this.dataset.label)"
-      style="${o.codigo === projMatSelecionado ? 'background:var(--gold-dim);color:var(--gold-light);' : ''}">
-      ${o.label}
-    </div>`).join('');
-}
-
-function selectProjMat(codigo, label) {
-  projMatSelecionado = codigo;
-  document.getElementById('projMatLabel').textContent = label;
-  document.getElementById('projMatDropdown').classList.remove('open');
-  renderProjecao(codigo);
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('#projMatDropdown') && !e.target.closest('#projMatBtn')) {
-    document.getElementById('projMatDropdown')?.classList.remove('open');
-  }
-});
-
-async function loadProjecaoEstoque() {
-  try {
-    const materiais = await sbGet('cadastros_materiais', 'select=codigo,descricao,tipo,coef_perdas&order=codigo.asc');
-
-    // Ocultar seletor de ano (a tabela já tem todos os dados)
-    document.getElementById('projAnoSeg').parentElement.style.display = 'none';
-
-    // Popular dropdown de material
-    projMatOpcoes = materiais.map(m => ({ codigo: m.codigo, tipo: m.tipo, label: `${m.codigo} · ${m.descricao}` }));
-    projMatSelecionado = '';
-    renderProjMatList();
-
-    document.getElementById('projDiasAtras').addEventListener('change', () => {
-      if (projMatSelecionado) renderProjecao(projMatSelecionado);
-    });
-    document.getElementById('projDiasFrente').addEventListener('change', () => { if (projMatSelecionado) renderProjecao(projMatSelecionado); });
-
-  } catch(e) { showToast('error', 'Erro ao carregar projeção', e.message); }
-}
-
-async function renderProjecao(codMaterial) {
-  const alertDiv = document.getElementById('projAlerts');
-  alertDiv.innerHTML = '<div class="prev-alert" style="color:var(--text-muted)">⏳ Carregando dados…</div>';
-
-  try {
-    // Buscar dados direto da tabela saldo_estoque_diario
-    // Últimos 180 dias reais + todos os dias previstos
-    const hoje = new Date();
-    const diasAtras  = parseInt(document.getElementById('projDiasAtras')?.value  || 180);
-    const diasFrente = parseInt(document.getElementById('projDiasFrente')?.value || 270);
-    const dataIni = new Date(hoje);
-    dataIni.setDate(dataIni.getDate() - diasAtras);
-    const dataIniFmt = dataIni.toISOString().slice(0, 10);
-    const dataFimFmt = new Date(hoje.getTime() + diasFrente * 86400000).toISOString().slice(0, 10);
-
-    const rows = await sbGet('saldo_estoque_diario',
-      `select=data,tipo,entradas,saidas,saldo_final&codigo_material=eq.${encodeURIComponent(codMaterial)}&data=gte.${dataIniFmt}&data=lte.${dataFimFmt}&order=data.asc`);
-
-    if (!rows.length) {
-      alertDiv.innerHTML = '<div class="prev-alert">ℹ Nenhum dado encontrado. Execute a reconstrução da tabela primeiro.</div>';
-      return;
-    }
-
-    // ── Cards de resumo ───────────────────────────────────────────────────
-    const ymHoje = hoje.toISOString().slice(0, 7);
-    const reais    = rows.filter(r => r.tipo === 'real');
-    const previstos = rows.filter(r => r.tipo === 'previsto');
-    const saldoAtual = reais.length ? parseFloat(reais[reais.length-1].saldo_final) : 0;
-    const totalConsumo  = previstos.reduce((a,r) => a + Math.abs(parseFloat(r.saidas||0)), 0);
-    const totalCompras  = previstos.reduce((a,r) => a + parseFloat(r.entradas||0), 0);
-    const saldoFinalPrev = previstos.length ? parseFloat(previstos[previstos.length-1].saldo_final) : saldoAtual;
-
-    const fmtN = v => Math.round(v).toLocaleString('pt-BR');
-    document.getElementById('projSaldoAtual').textContent   = fmtN(saldoAtual);
-    document.getElementById('projConsumoPrev').textContent  = fmtN(totalConsumo);
-    document.getElementById('projComprasAgen').textContent  = fmtN(totalCompras);
-    const sfEl = document.getElementById('projSaldoFinal');
-    sfEl.textContent   = fmtN(saldoFinalPrev);
-    sfEl.style.color   = saldoFinalPrev < 0 ? 'var(--negative)' :
-                         saldoFinalPrev < saldoAtual * 0.15 ? 'var(--warning)' : 'var(--positive)';
-    document.getElementById('projCards').style.display = 'block';
-
-    // ── Alertas ───────────────────────────────────────────────────────────
-    const alerts = [];
-    if (!reais.length)    alerts.push('ℹ Nenhuma movimentação real encontrada para este material.');
-    if (!previstos.length) alerts.push('⚠ Nenhum dado previsto. Verifique se há metas cadastradas para este material.');
-    const diasNeg = previstos.filter(r => parseFloat(r.saldo_final) < 0);
-    if (diasNeg.length) {
-      const primeiroNeg = diasNeg[0].data;
-      alerts.push(`🔴 Estoque negativo previsto a partir de ${fmtDate(primeiroNeg)} (${diasNeg.length} dias negativos)`);
-    }
-    alertDiv.innerHTML = alerts.map(a => `<div class="prev-alert">${a}</div>`).join('');
-
-    // ── Gráfico — amostrar para não sobrecarregar (máx 120 pontos) ────────
-    // Agrupar por semana: pegar último dia de cada semana
-    const amostra = [];
-    let semanaAtual = null;
-    rows.forEach(r => {
-      const d = new Date(r.data + 'T12:00:00');
-      const semana = Math.floor(d.getTime() / (7 * 24 * 3600 * 1000));
-      if (semana !== semanaAtual) {
-        semanaAtual = semana;
-        amostra.push(r);
-      } else {
-        amostra[amostra.length - 1] = r; // substitui pelo último da semana
-      }
-    });
-
-    document.getElementById('projChartCard').style.display = 'block';
-    if (projChartInstance) { projChartInstance.destroy(); projChartInstance = null; }
-
-    const labels    = amostra.map(r => fmtDateShort(r.data));
-    const saldos    = amostra.map(r => Math.round(parseFloat(r.saldo_final)));
-    const idxCorte  = amostra.findIndex(r => r.tipo === 'previsto');
-
-    const dadosReais = saldos.map((v, i) => (idxCorte === -1 || i < idxCorte) ? v : null);
-    const dadosPrev  = saldos.map((v, i) => {
-      if (idxCorte === -1) return null;
-      if (i === idxCorte - 1) return v; // ponto de conexão
-      return i >= idxCorte ? v : null;
-    });
-
-    // Carregar estoque de segurança se necessário
-    if (!Object.keys(estoqueSegurancaMap).length) await carregarEstoqueSeguranca();
-    const estSeg = getEstoqueSeguranca(codMaterial);
-
-    const ctx = document.getElementById('projChart').getContext('2d');
-    const chartDatasets = [
-          {
-            label: 'Saldo Realizado',
-            data: dadosReais,
-            borderColor: '#D49B10',
-            backgroundColor: 'rgba(255,184,28,0.15)',
-            borderWidth: 2.5,
-            pointRadius: 2,
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#D49B10',
-            fill: true, tension: 0.3, spanGaps: false,
-          },
-          {
-            label: 'Saldo Previsto',
-            data: dadosPrev,
-            borderColor: '#6fa8dc',
-            backgroundColor: 'rgba(111,168,220,0.12)',
-            borderWidth: 2.5,
-            borderDash: [6, 4],
-            pointRadius: 2,
-            pointHoverRadius: 5,
-            pointBackgroundColor: '#6fa8dc',
-            fill: true, tension: 0.3, spanGaps: false,
-          },
-    ];
-    if (estSeg > 0) {
-      chartDatasets.push({
-        label: `Est. Segurança (${estoqueSegurancaMap[codMaterial]?.dias||0}d)`,
-        data: labels.map(() => estSeg),
-        borderColor: 'rgba(212,32,48,0.7)',
-        borderWidth: 1.5,
-        borderDash: [8, 4],
-        pointRadius: 0,
-        fill: false, tension: 0,
-      });
-    }
-    projChartInstance = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: chartDatasets
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: { labels: { color: '#8A7B6A', font: { size: 11 } } },
-          tooltip: {
-            callbacks: {
-              label: ctx => `${ctx.dataset.label}: ${Math.round(ctx.parsed.y).toLocaleString('pt-BR')}`
-            }
-          }
-        },
-        scales: {
-          x: { ticks: { color: '#A09585', font: { size: 10 }, maxTicksLimit: 18 }, grid: { color: 'rgba(0,0,0,.05)' } },
-          y: {
-            min: 0,
-            ticks: { color: '#A09585', font: { size: 10 }, callback: v => Math.round(v).toLocaleString('pt-BR') },
-            grid: { color: 'rgba(0,0,0,.06)' },
-          }
-        }
-      }
-    });
-
-    // ── Tabela mensal (agrupa por mês) ────────────────────────────────────
-    document.getElementById('projTabela').style.display = 'block';
-    // Buscar todos os dados disponíveis para montar a tabela mensal corretamente
-    // Pega desde o início da série (sem filtro de 180 dias) para ter o saldo inicial certo
-    const primeiroMesDisp = await sbGet('saldo_estoque_diario',
-      `select=data,saldo_final&codigo_material=eq.${encodeURIComponent(codMaterial)}&order=data.asc&limit=1`);
-    const dataIniTodos = primeiroMesDisp.length ? primeiroMesDisp[0].data : dataIniFmt;
-
-    // Busca paginada para não cortar no limite de 1000 linhas do PostgREST
-    const fetchAllMes = async (filtro) => {
-      let all = [], offset = 0, limit = 1000;
-      while (true) {
-        const chunk = await sbGet('saldo_estoque_diario', filtro + `&limit=${limit}&offset=${offset}`);
-        all = all.concat(chunk);
-        if (chunk.length < limit) break;
-        offset += limit;
-      }
-      return all;
-    };
-    const rowsMes = await fetchAllMes(
-      `select=data,tipo,entradas,saidas,saldo_final&codigo_material=eq.${encodeURIComponent(codMaterial)}&data=gte.${dataIniTodos}&order=data.asc`);
-
-    // Agrupar por mês somando valores originais (sem arredondamento intermediário)
-    // saldoFinal = saldo do ÚLTIMO dia do mês (sobrescreve a cada iteração)
-    // saldoInicial = saldo do ÚLTIMO dia do mês ANTERIOR (calculado depois)
-    const mesesMap = {};
-    // Guardar o saldo do último dia de cada mês
-    const saldoUltimoDia = {}; // ym -> saldo_final do último dia
-
-    rowsMes.forEach(r => {
-      const ym = r.data.slice(0, 7);
-      if (!mesesMap[ym]) mesesMap[ym] = { ym, tipo: r.tipo, entradas: 0, saidas: 0, saldoFinal: 0, saldoInicial: 0 };
-      mesesMap[ym].saidas   += parseFloat(r.saidas   || 0);
-      mesesMap[ym].entradas += parseFloat(r.entradas || 0);
-      mesesMap[ym].saldoFinal = parseFloat(r.saldo_final); // sobrescreve → fica com o último dia
-      if (r.tipo === 'previsto') mesesMap[ym].tipo = 'previsto';
-      saldoUltimoDia[ym] = parseFloat(r.saldo_final);
-    });
-
-    // saldo inicial = saldo final do mês anterior
-    const yms = Object.keys(mesesMap).sort();
-    yms.forEach((ym, i) => {
-      if (i === 0) {
-        // Primeiro mês: saldo inicial = saldo final - entradas + saidas
-        mesesMap[ym].saldoInicial = mesesMap[ym].saldoFinal - mesesMap[ym].entradas + mesesMap[ym].saidas;
-      } else {
-        mesesMap[ym].saldoInicial = saldoUltimoDia[yms[i-1]];
-      }
-    });
-
-    // Filtrar para exibir apenas os meses dentro do período visível no gráfico
-    const ymMin = dataIni.toISOString().slice(0, 7);
-    const ymMax = dataFimFmt.slice(0, 7);
-
-    const ymsFiltrados = yms.filter(ym => ym >= ymMin && ym <= ymMax);
-    document.getElementById('projTabelaBody').innerHTML = ymsFiltrados.map(ym => {
-      const m = mesesMap[ym];
-      const sfColor = m.saldoFinal < 0 ? 'color:var(--negative);font-weight:600' :
-                      m.tipo === 'previsto' ? 'color:#6fa8dc' : 'color:var(--gold-light)';
-      const badge = m.tipo === 'real'
-        ? '<span style="font-size:10px;background:rgba(255,184,28,.15);color:var(--gold);padding:2px 8px;border-radius:3px;">Realizado</span>'
-        : '<span style="font-size:10px;background:rgba(111,168,220,.15);color:#6fa8dc;padding:2px 8px;border-radius:3px;">Previsto</span>';
-      const [ano, mes] = ym.split('-');
-      const nomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-      const label = `${nomes[parseInt(mes)-1]}/${ano}`;
-      return `<tr>
-        <td style="font-weight:500">${label}</td>
-        <td style="text-align:right">${fmtN(m.saldoInicial)}</td>
-        <td style="text-align:right;color:var(--positive)">${m.entradas > 0.01 ? '+'+fmtN(m.entradas) : '—'}</td>
-        <td style="text-align:right;color:var(--warning)">${Math.abs(m.saidas) > 0.01 ? '−'+fmtN(Math.abs(m.saidas)) : '—'}</td>
-        <td style="text-align:right;${sfColor}">${fmtN(m.saldoFinal)}</td>
-        <td style="text-align:center">${badge}</td>
-      </tr>`;
-    }).join(''); // ymsFiltrados
-
-  } catch(e) {
-    alertDiv.innerHTML = `<div class="prev-alert" style="color:var(--negative)">❌ Erro: ${e.message}</div>`;
-  }
-}
-
-function fmtDateShort(d) {
-  if (!d) return '';
-  const [ano, mes, dia] = d.split('-');
-  const nomes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  return `${dia}/${nomes[parseInt(mes)-1]}`;
-}
 
 async function executarRecalculo(btnOrigem) {
   // Desabilita ambos os botões durante o processo
   const btns = [
-    document.getElementById('btnRecalcularProjecao'),
     document.getElementById('btnRecalcularProjecaoMensal')
   ].filter(Boolean);
   btns.forEach(b => { b.disabled = true; b.textContent = '⏳ Iniciando…'; });
@@ -4018,9 +3591,6 @@ async function executarRecalculo(btnOrigem) {
         if (r.ok) ok++; else erros++;
       } catch { erros++; }
     }
-
-    // Atualiza Projeção de Estoque se houver material selecionado
-    if (projMatSelecionado) await renderProjecao(projMatSelecionado);
 
     // Invalida cache da Projeção Mensal
     pmCarregado = false;
@@ -4043,7 +3613,6 @@ async function executarRecalculo(btnOrigem) {
   }
 }
 
-document.getElementById('btnRecalcularProjecao').addEventListener('click', () => executarRecalculo('projecaoestoque'));
 document.getElementById('btnRecalcularProjecaoMensal').addEventListener('click', () => executarRecalculo('projecaomensal'));
 
 
@@ -4379,33 +3948,6 @@ document.getElementById('btnExportMetasExcel').addEventListener('click', () => {
   showToast('success','Exportado!',`Metas ${metasAno} exportadas.`);
 });
 
-// ── Projeção de Estoque — Tabela Mensal ───────────────────────────────────────
-document.getElementById('btnExportProjecaoTabela').addEventListener('click', () => {
-  const tbody = document.getElementById('projTabelaBody');
-  if (!tbody || !tbody.children.length) { showToast('warning','Sem dados','Selecione um material primeiro.'); return; }
-  const nomeMat = projMatSelecionado ? (projMatOpcoes.find(o=>o.codigo===projMatSelecionado)?.label || projMatSelecionado) : 'material';
-  const linhas = [];
-  tbody.querySelectorAll('tr').forEach(tr => {
-    const tds = tr.querySelectorAll('td');
-    if (tds.length >= 5) {
-      linhas.push([
-        tds[0].textContent.trim(),
-        tds[1].textContent.trim(),
-        tds[2].textContent.trim(),
-        tds[3].textContent.trim(),
-        tds[4].textContent.trim(),
-        tds[5]?.textContent.trim() || ''
-      ]);
-    }
-  });
-  exportarXLSX(
-    `projecao_${mat.value}.xlsx`, mat.value,
-    ['Mês','Saldo Inicial','+ Compras','- Consumo','= Saldo Final','Tipo'],
-    linhas
-  );
-  showToast('success','Exportado!',`Projeção de ${nomeMat} exportada.`);
-});
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtDate(d) {
   if (!d || d.length < 10) return d;
@@ -4726,7 +4268,6 @@ const TAB_MAP = {
   faturamento:       'tabFaturamento',
   metas:             'tabMetas',
   previsaoconsumo:   'tabPrevisaoConsumo',
-  projecaoestoque:    'tabProjecaoEstoque',
   projecaomensal:     'tabProjecaoMensal',
   gerencia:           'tabGerencia',
   cadastropp:        'tabCadastroPP',
@@ -4754,7 +4295,6 @@ document.querySelectorAll('.nav-item').forEach(item => {
     if (target === 'faturamento') loadFatTable();
     if (target === 'metas') loadMetasTab();
     if (target === 'previsaoconsumo') loadPrevisaoConsumo();
-    if (target === 'projecaoestoque') loadProjecaoEstoque();
     if (target === 'projecaomensal')   loadProjecaoMensal();
     if (target === 'gerencia') loadGerencia();
     if (target === 'cadastropp') loadPPTable();
