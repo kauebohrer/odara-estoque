@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1810,7 +1810,7 @@
           <button class="btn-cancel" onclick="limparSimulacao()" style="font-size:10px;padding:5px 10px;">✕ Limpar simulação</button>
         </div>
         <div style="overflow-x:auto;border:1px solid var(--border);border-radius:4px;">
-          <table id="pmQvSimTable" style="border-collapse:collapse;font-size:12px;min-width:100%;"></table>
+          <table id="pmQvSimTable" style="border-collapse:collapse;font-size:12px;width:100%;table-layout:fixed;"></table>
         </div>
       </div>
       <!-- Loading -->
@@ -3170,10 +3170,10 @@ function toggleGerTagDropdown(e) {
 function renderGerTagList() {
   const list = document.getElementById('gerTagList');
   if (!allTags.length) { list.innerHTML = '<div style="padding:12px;font-size:12px;color:var(--text-dim);">Nenhuma tag cadastrada</div>'; return; }
-  list.innerHTML = '<div class="col-filter-item" data-tag="" onclick="gerTagToggle(this)" style="' + (gerTagFiltro.length === 0 ? 'background:var(--gold-dim);color:var(--gold-light);' : '') + '">Todas</div>' +
+  list.innerHTML = '<div class="col-filter-item" data-tag="" onclick="event.stopPropagation();gerTagToggle(this)" style="' + (gerTagFiltro.length === 0 ? 'background:var(--gold-dim);color:var(--gold-light);' : '') + '">Todas</div>' +
     allTags.map(t => {
       const sel = gerTagFiltro.includes(t.nome);
-      return `<div class="col-filter-item" data-tag="${t.nome}" onclick="gerTagToggle(this)" style="${sel ? 'background:var(--gold-dim);color:var(--gold-light);' : ''}">${t.nome}</div>`;
+      return `<div class="col-filter-item" data-tag="${t.nome}" onclick="event.stopPropagation();gerTagToggle(this)" style="${sel ? 'background:var(--gold-dim);color:var(--gold-light);' : ''}">${t.nome}</div>`;
     }).join('');
 }
 
@@ -6937,12 +6937,9 @@ function closePmQuickView() {
 async function loadPmQuickViewData(codMaterial) {
   try {
     const hoje = new Date();
-    const diasAtras = 90;
-    const diasFrente = 270;
-    const dataIni = new Date(hoje);
-    dataIni.setDate(dataIni.getDate() - diasAtras);
-    const dataIniFmt = dataIni.toISOString().slice(0, 10);
-    const dataFimFmt = new Date(hoje.getTime() + diasFrente * 86400000).toISOString().slice(0, 10);
+    const anoAtual = hoje.getFullYear();
+    const dataIniFmt = `${anoAtual}-01-01`;
+    const dataFimFmt = `${anoAtual}-12-31`;
 
     const fetchAll = async (filtro) => {
       let all = [], offset = 0, limit = 1000;
@@ -7216,9 +7213,8 @@ function renderQvChart() {
 function renderQvSimTable() {
   if (!pmQvMesesData.length) return;
 
-  // Filtrar apenas meses previstos (futuros) para simulação
-  const hoje = new Date().toISOString().slice(0, 7);
-  const mesesFuturos = pmQvMesesData.filter(m => m.ym >= hoje);
+  // Mostrar todos os meses do ano (Jan a Dez)
+  const mesesFuturos = pmQvMesesData;
   if (!mesesFuturos.length) return;
 
   const nomesMes = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -7233,13 +7229,13 @@ function renderQvSimTable() {
     simSaldos.push(m.saldo + acumExtra);
   });
 
-  // Construir tabela
-  const thStyle = 'padding:7px 10px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border);white-space:nowrap;text-align:center;';
-  const tdStyle = 'padding:6px 10px;font-size:11px;text-align:center;white-space:nowrap;';
-  const labelStyle = 'padding:7px 12px;font-size:11px;font-weight:500;white-space:nowrap;text-align:left;border-right:1px solid var(--border);';
+  // Construir tabela (compacta para caber 12 meses)
+  const thStyle = 'padding:5px 4px;font-size:9px;letter-spacing:.05em;text-transform:uppercase;color:var(--text-dim);border-bottom:1px solid var(--border);white-space:nowrap;text-align:center;';
+  const tdStyle = 'padding:5px 4px;font-size:10px;text-align:center;white-space:nowrap;';
+  const labelStyle = 'padding:5px 8px;font-size:10px;font-weight:500;white-space:nowrap;text-align:left;border-right:1px solid var(--border);';
 
   let html = '<thead><tr>';
-  html += `<th style="${thStyle}text-align:left;border-right:1px solid var(--border);min-width:120px;">Linha</th>`;
+  html += `<th style="${thStyle}text-align:left;border-right:1px solid var(--border);width:90px;">Linha</th>`;
   mesesFuturos.forEach((m, i) => {
     const bg = i % 2 === 0 ? 'background:var(--surface2);' : '';
     html += `<th style="${thStyle}${bg}">${fmtYm(m.ym)}</th>`;
