@@ -391,17 +391,10 @@
   <div class="login-box">
     <div class="login-logo">☀️ Odara</div>
     <div class="login-sub">Gestão de Estoque</div>
-    <div id="loginSetupMsg" class="login-setup-msg" style="display:none;">
-      🔑 Primeiro acesso — crie a conta de administrador
-    </div>
-    <input class="login-field" id="loginNome" type="text" placeholder="Seu nome" style="display:none;">
     <input class="login-field" id="loginEmail" type="email" placeholder="Email">
     <input class="login-field" id="loginSenha" type="password" placeholder="Senha">
     <button class="login-btn" id="loginBtn" data-mode="login" onclick="handleLogin()">Entrar</button>
     <div class="login-error" id="loginError"></div>
-    <div id="loginSetupLink" style="margin-top:16px;font-size:12px;color:var(--text-muted);">
-      Primeiro acesso? <a href="#" onclick="switchToSetup();return false;" style="color:var(--gold);text-decoration:underline;cursor:pointer;">Criar administrador</a>
-    </div>
   </div>
 </div>
 
@@ -889,13 +882,29 @@
     <!-- Filtros -->
     <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:16px;">
       <div>
-        <div class="field-label" style="margin-bottom:6px;">Tipo</div>
-        <select class="form-select" id="gerFiltroTipo" style="width:160px;font-size:12px;padding:7px 8px;">
-          <option value="">Todos</option>
-          <option value="Matéria Prima">Matéria Prima</option>
-          <option value="Embalagem">Embalagem</option>
-        </select>
+        <div class="field-label" style="margin-bottom:6px;">Tipo de material</div>
+        <div style="display:flex;gap:6px;">
+          <button class="period-btn active" id="gerBtnTodos" onclick="setGerTipo('')">Todos</button>
+          <button class="period-btn" id="gerBtnMP" onclick="setGerTipo('Matéria Prima')">Matéria-Prima</button>
+          <button class="period-btn" id="gerBtnEmb" onclick="setGerTipo('Embalagem')">Embalagem</button>
+        </div>
       </div>
+
+      <!-- Filtro de Tags -->
+      <div style="position:relative;">
+        <div class="field-label" style="margin-bottom:6px;">Tag</div>
+        <button class="form-select" id="gerTagBtn" onclick="toggleGerTagDropdown(event)"
+          style="min-width:160px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:9px 12px;gap:8px;">
+          <span id="gerTagLabel">Todas</span><span>▾</span>
+        </button>
+        <div class="col-filter-dropdown" id="gerTagDropdown" style="width:220px;max-height:300px;">
+          <div class="col-filter-list" id="gerTagList" style="padding:6px 0;"></div>
+          <div class="col-filter-footer">
+            <button class="col-filter-apply" onclick="applyGerTagFilter()">Aplicar</button>
+          </div>
+        </div>
+      </div>
+
       <div>
         <div class="field-label" style="margin-bottom:6px;">Farol</div>
         <select class="form-select" id="gerFiltroFarol" style="width:160px;font-size:12px;padding:7px 8px;">
@@ -905,10 +914,10 @@
           <option value="ok">🟢 OK (&gt;60 dias)</option>
         </select>
       </div>
-      <div style="position:relative;">
+      <div style="position:relative;flex:1;min-width:240px;max-width:440px;">
         <div class="field-label" style="margin-bottom:6px;">Material</div>
         <button class="form-select" id="gerFiltroMatBtn" onclick="toggleGerMatDropdown(event)"
-          style="width:220px;font-size:12px;padding:7px 8px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
+          style="width:100%;font-size:12px;padding:7px 8px;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;">
           <span id="gerFiltroMatLabel">Todos</span><span>▾</span>
         </button>
         <div class="col-filter-dropdown" id="gerMatDropdown" style="width:280px;max-height:320px;">
@@ -1271,6 +1280,12 @@
             <span style="color:var(--text-dim);font-size:12px;" id="matTagSelectorEmpty">Nenhuma tag cadastrada</span>
           </div>
         </div>
+        <div class="form-field" style="margin-top:8px;">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-muted);">
+            <input type="checkbox" id="matFAtivo" checked style="width:16px;height:16px;accent-color:var(--gold);">
+            Material ativo <span style="font-size:11px;color:var(--text-dim);">(desativados não aparecem nos relatórios)</span>
+          </label>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn-del" id="btnDeleteMat" style="display:none;">Excluir</button>
@@ -1466,7 +1481,14 @@
           <label class="form-label">SKU (descrição unitária)</label>
           <input type="text" class="form-input" id="ppFSku" placeholder="Ex: ALFAJOR ODARA BRANCO 65G UN">
         </div>
-      </div>
+      
+        <div class="form-field" style="margin-top:8px;">
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text-muted);">
+            <input type="checkbox" id="ppFAtivo" checked style="width:16px;height:16px;accent-color:var(--gold);">
+            Produto ativo <span style="font-size:11px;color:var(--text-dim);">(desativados não aparecem nos relatórios)</span>
+          </label>
+        </div>
+</div>
       <div class="modal-footer">
         <button class="btn-del" id="btnDeletePP" style="display:none;">Excluir</button>
         <button class="btn-cancel" id="btnCancelPP">Cancelar</button>
@@ -1896,29 +1918,29 @@ function showLoginScreen(setupMode) {
   if (setupMode) {
     switchToSetup();
   } else {
-    document.getElementById('loginSetupMsg').style.display = 'none';
-    document.getElementById('loginNome').style.display = 'none';
+    (document.getElementById('loginSetupMsg')||{style:{}}).style.display = 'none';
+    ;(document.getElementById('loginNome')||{style:{}}).style.display = 'none';
     document.getElementById('loginBtn').textContent = 'Entrar';
     document.getElementById('loginBtn').setAttribute('data-mode','login');
-    document.getElementById('loginSetupLink').style.display = 'block';
+    if(document.getElementById('loginSetupLink')) document.getElementById('loginSetupLink').style.display = 'block';
   }
 }
 
 function switchToSetup() {
-  document.getElementById('loginSetupMsg').style.display = 'block';
-  document.getElementById('loginNome').style.display = 'block';
+  (document.getElementById('loginSetupMsg')||{style:{}}).style.display = 'block';
+  ;(document.getElementById('loginNome')||{style:{}}).style.display = 'block';
   document.getElementById('loginBtn').textContent = 'Criar Administrador';
   document.getElementById('loginBtn').setAttribute('data-mode','setup');
-  document.getElementById('loginSetupLink').innerHTML = 'Já tem conta? <a href="#" onclick="switchToLogin();return false;" style="color:var(--gold);text-decoration:underline;cursor:pointer;">Fazer login</a>';
+  if(document.getElementById('loginSetupLink')) document.getElementById('loginSetupLink').innerHTML = 'Já tem conta? <a href="#" onclick="switchToLogin();return false;" style="color:var(--gold);text-decoration:underline;cursor:pointer;">Fazer login</a>';
   document.getElementById('loginError').textContent = '';
 }
 
 function switchToLogin() {
-  document.getElementById('loginSetupMsg').style.display = 'none';
-  document.getElementById('loginNome').style.display = 'none';
+  (document.getElementById('loginSetupMsg')||{style:{}}).style.display = 'none';
+  ;(document.getElementById('loginNome')||{style:{}}).style.display = 'none';
   document.getElementById('loginBtn').textContent = 'Entrar';
   document.getElementById('loginBtn').setAttribute('data-mode','login');
-  document.getElementById('loginSetupLink').innerHTML = 'Primeiro acesso? <a href="#" onclick="switchToSetup();return false;" style="color:var(--gold);text-decoration:underline;cursor:pointer;">Criar administrador</a>';
+  if(document.getElementById('loginSetupLink')) document.getElementById('loginSetupLink').innerHTML = 'Primeiro acesso? <a href="#" onclick="switchToSetup();return false;" style="color:var(--gold);text-decoration:underline;cursor:pointer;">Criar administrador</a>';
   document.getElementById('loginError').textContent = '';
 }
 
@@ -1962,7 +1984,7 @@ async function handleLogin() {
 
   try {
     if (mode === 'setup') {
-      const nome = document.getElementById('loginNome').value.trim();
+      const nome = (document.getElementById('loginNome')||{value:''}).value.trim();
       if (!nome) { errEl.textContent = 'Preencha seu nome'; btn.disabled = false; btn.textContent = 'Criar Administrador'; return; }
       // Step 1: Create admin via Edge Function
       const r = await fetch(SB_URL + '/functions/v1/setup-admin', {
@@ -2921,6 +2943,9 @@ let gerSortCol   = 'dias';
 let gerSortDir   = 'asc';
 let gerPage      = 0;
 const GER_PAGE   = 50;
+let gerTipo      = '';       // filtro tipo (botões)
+let gerTagFiltro = [];       // tags selecionadas (vazio = todas)
+let gerTagsMap   = {};       // { codigo_material: [tag1, tag2] }
 
 async function loadGerencia() {
   const loading = document.getElementById('gerLoading');
@@ -2946,7 +2971,12 @@ async function loadGerencia() {
     const M0 = getYM(0), M1 = getYM(1), M2 = getYM(2);
 
     // Buscar materiais cadastrados
-    const mats = await sbGet('cadastros_materiais', 'select=codigo,descricao,tipo,dias_cobertura&order=codigo.asc');
+    const mats = await sbGet('cadastros_materiais', 'select=codigo,descricao,tipo,dias_cobertura,tags,ativo&ativo=eq.true&order=codigo.asc');
+
+    // Carregar mapa de tags dos materiais
+    gerTagsMap = {};
+    mats.forEach(m => { if (m.tags?.length) gerTagsMap[m.codigo] = m.tags; });
+    if (!allTags.length) await loadAllTags();
 
     // ── Busca 1: saldo atual (último real de cada material) via SQL agregado ──
     // Usamos RPC não disponível, então buscamos só os últimos 7 dias reais (garante pegar o último)
@@ -3070,17 +3100,70 @@ async function loadGerencia() {
 }
 
 function filterGerencia() {
-  const tipo   = document.getElementById('gerFiltroTipo')?.value || '';
   const farol  = document.getElementById('gerFiltroFarol')?.value || '';
   gerFiltered = gerData.filter(r => {
-    if (tipo  && r.tipo !== tipo) return false;
+    if (gerTipo && r.tipo !== gerTipo) return false;
     if (farol && r.farol !== farol) return false;
     if (gerMatNenhum) return false;
     if (gerMatSelecionados.size > 0 && !gerMatSelecionados.has(r.codigo)) return false;
+    if (gerTagFiltro.length > 0) {
+      const matTags = gerTagsMap[r.codigo] || [];
+      if (!gerTagFiltro.some(t => matTags.includes(t))) return false;
+    }
     return true;
   });
   gerPage = 0;
   renderGerencia();
+}
+
+// Tipo buttons
+function setGerTipo(tipo) {
+  gerTipo = tipo;
+  document.getElementById('gerBtnTodos').classList.toggle('active', tipo === '');
+  document.getElementById('gerBtnMP').classList.toggle('active', tipo === 'Matéria Prima');
+  document.getElementById('gerBtnEmb').classList.toggle('active', tipo === 'Embalagem');
+  buildGerMatOpcoes();
+  filterGerencia();
+}
+
+// Tag filter
+function toggleGerTagDropdown(e) {
+  e.stopPropagation();
+  const dd = document.getElementById('gerTagDropdown');
+  const isOpen = dd.classList.contains('open');
+  document.querySelectorAll('.col-filter-dropdown.open').forEach(el => el.classList.remove('open'));
+  if (!isOpen) {
+    dd.classList.add('open');
+    renderGerTagList();
+  }
+}
+
+function renderGerTagList() {
+  const list = document.getElementById('gerTagList');
+  if (!allTags.length) { list.innerHTML = '<div style="padding:12px;font-size:12px;color:var(--text-dim);">Nenhuma tag cadastrada</div>'; return; }
+  list.innerHTML = '<div class="col-filter-item" data-tag="" onclick="gerTagToggle(this)" style="' + (gerTagFiltro.length === 0 ? 'background:var(--gold-dim);color:var(--gold-light);' : '') + '">Todas</div>' +
+    allTags.map(t => {
+      const sel = gerTagFiltro.includes(t.nome);
+      return `<div class="col-filter-item" data-tag="${t.nome}" onclick="gerTagToggle(this)" style="${sel ? 'background:var(--gold-dim);color:var(--gold-light);' : ''}">${t.nome}</div>`;
+    }).join('');
+}
+
+function gerTagToggle(el) {
+  const tag = el.dataset.tag;
+  if (!tag) { gerTagFiltro = []; }
+  else {
+    const idx = gerTagFiltro.indexOf(tag);
+    if (idx >= 0) gerTagFiltro.splice(idx, 1);
+    else gerTagFiltro.push(tag);
+  }
+  renderGerTagList();
+}
+
+function applyGerTagFilter() {
+  document.getElementById('gerTagDropdown').classList.remove('open');
+  document.getElementById('gerTagLabel').textContent = gerTagFiltro.length ? gerTagFiltro.join(', ') : 'Todas';
+  buildGerMatOpcoes();
+  filterGerencia();
 }
 
 function sortGerencia(col) {
@@ -3100,13 +3183,16 @@ function renderGerencia() {
   loading.style.display = 'none';
 
   // Aplicar filtros inline (busca em tempo real)
-  const tipo   = document.getElementById('gerFiltroTipo')?.value || '';
   const farol  = document.getElementById('gerFiltroFarol')?.value || '';
   gerFiltered = gerData.filter(r => {
-    if (tipo  && r.tipo !== tipo) return false;
+    if (gerTipo && r.tipo !== gerTipo) return false;
     if (farol && r.farol !== farol) return false;
     if (gerMatNenhum) return false;
     if (gerMatSelecionados.size > 0 && !gerMatSelecionados.has(r.codigo)) return false;
+    if (gerTagFiltro.length > 0) {
+      const matTags = gerTagsMap[r.codigo] || [];
+      if (!gerTagFiltro.some(t => matTags.includes(t))) return false;
+    }
     return true;
   });
 
@@ -3154,7 +3240,7 @@ function renderGerencia() {
     <tr style="border-left: 3px solid ${r.farol==='critico'?'var(--negative)':r.farol==='atencao'?'var(--warning)':'var(--positive)'};">
       <td style="text-align:center;font-size:16px;">${r.farolIcon}</td>
       <td style="text-align:center;font-family:monospace;font-size:12px;">${r.codigo}</td>
-      <td style="text-align:left;">${r.descricao}</td>
+      <td style="text-align:left;cursor:pointer;" onclick="openPmQuickView('${r.codigo}','${r.descricao.replace(/'/g,'')}')" onmouseover="this.style.color='var(--gold-light)'" onmouseout="this.style.color=''">${r.descricao}</td>
       <td style="text-align:center;"><span class="badge badge-neu" style="font-size:10px;">${r.tipo}</span></td>
       <td style="text-align:center;">${r.unidade||'—'}</td>
       <td style="text-align:center;">${fmtN(r.estoque)}</td>
@@ -3222,12 +3308,18 @@ let gerMatNenhum = false;           // true = nenhum selecionado explicitamente
 let gerMatOpcoes = []; // lista completa de {codigo, descricao}
 
 function buildGerMatOpcoes() {
-  // Monta lista de opções filtrada por tipo e farol ativos
-  const tipo  = document.getElementById('gerFiltroTipo')?.value  || '';
+  // Monta lista de opções filtrada por tipo, farol e tags ativos
   const farol = document.getElementById('gerFiltroFarol')?.value || '';
   gerMatOpcoes = gerData
-    .filter(r => (!tipo  || r.tipo  === tipo)
-              && (!farol || r.farol === farol))
+    .filter(r => {
+      if (gerTipo && r.tipo !== gerTipo) return false;
+      if (farol && r.farol !== farol) return false;
+      if (gerTagFiltro.length > 0) {
+        const matTags = gerTagsMap[r.codigo] || [];
+        if (!gerTagFiltro.some(t => matTags.includes(t))) return false;
+      }
+      return true;
+    })
     .map(r => ({ codigo: r.codigo, label: `${r.codigo} · ${r.descricao}` }))
     .sort((a, b) => a.codigo.localeCompare(b.codigo));
   gerMatSelecionados = new Set(); // reset = todos
@@ -3312,12 +3404,15 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#gerMatDropdown') && !e.target.closest('#gerFiltroMatBtn')) {
     document.getElementById('gerMatDropdown')?.classList.remove('open');
   }
+  if (!e.target.closest('#gerTagDropdown') && !e.target.closest('#gerTagBtn')) {
+    document.getElementById('gerTagDropdown')?.classList.remove('open');
+  }
 });
 
 // Filtros da gerência disparam re-render (via onclick no HTML já configurado, oninput na busca)
 // Selects usam onchange inline
 document.addEventListener('change', e => {
-  if (e.target.id === 'gerFiltroTipo' || e.target.id === 'gerFiltroFarol') { buildGerMatOpcoes(); renderGerencia(); }
+  if (e.target.id === 'gerFiltroFarol') { buildGerMatOpcoes(); renderGerencia(); }
 });
 
 
@@ -3387,8 +3482,8 @@ async function loadPrevisaoConsumo() {
     const [metas, estrutura, materiais, pp] = await Promise.all([
       sbGet('metas_sku',          'select=cod_sku,ano,mes,meta_cx'),
       sbGet('estrutura_produto',  'select=cod_prod,cod_item,desc_item,qtd_ideal_unit'),
-      sbGet('cadastros_materiais','select=codigo,descricao,tipo,coef_perdas'),
-      sbGet('cadastros_pp',       'select=codigo_pp,cod_sku,qtd_cx_master,descricao'),
+      sbGet('cadastros_materiais','select=codigo,descricao,tipo,coef_perdas,ativo&ativo=eq.true'),
+      sbGet('cadastros_pp',       'select=codigo_pp,cod_sku,qtd_cx_master,descricao,ativo&ativo=eq.true'),
     ]);
 
     // 2. Montar seletor de ano
@@ -3404,16 +3499,19 @@ async function loadPrevisaoConsumo() {
         seg.querySelectorAll('button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         prevAno = parseInt(btn.dataset.ano);
-        renderPrevisao(metas, estrutura, materiais, pp);
+        renderPrevisao(metas, estrutura, materiais, pp, movSaidas);
       });
     });
 
-    renderPrevisao(metas, estrutura, materiais, pp);
+    // Buscar saídas reais (consumo) das movimentações
+    const movSaidas = await sbGet('movimentacoes', 'select=codigo_produto,data,quantidade,origem&origem=eq.Consumo da Ordem de Produção&order=data.asc');
+
+    renderPrevisao(metas, estrutura, materiais, pp, movSaidas);
 
   } catch(e) { showToast('error', 'Erro ao carregar previsão', e.message); }
 }
 
-function renderPrevisao(metas, estrutura, materiais, pp) {
+function renderPrevisao(metas, estrutura, materiais, pp, movSaidas) {
   const meses = [1,2,3,4,5,6,7,8,9,10,11,12];
 
   // --- Índices rápidos ---
@@ -3482,6 +3580,19 @@ function renderPrevisao(metas, estrutura, materiais, pp) {
 
   prevResultado = Object.values(resultado).sort((a,b) => a.cod_item.localeCompare(b.cod_item));
 
+  // --- Realizado (consumo real das movimentações) ---
+  window._prevRealizado = {};
+  (movSaidas || []).forEach(r => {
+    if (!r.data) return;
+    const ano = parseInt(r.data.slice(0,4));
+    if (ano !== prevAno) return;
+    const mes = parseInt(r.data.slice(5,7));
+    const cod = r.codigo_produto;
+    const qty = Math.abs(parseFloat(r.quantidade || 0));
+    if (!window._prevRealizado[cod]) window._prevRealizado[cod] = {};
+    window._prevRealizado[cod][mes] = (window._prevRealizado[cod][mes] || 0) + qty;
+  });
+
   // --- Alertas ---
   const alertDiv = document.getElementById('prevAlerts');
   const alerts = [];
@@ -3536,9 +3647,19 @@ function renderPrevisaoTabela() {
               <td class="col-coef" style="text-align:center">${r.coef_perdas > 0 ? r.coef_perdas.toFixed(1)+'%' : '—'}</td>
               ${meses.map(m => {
                 const v = r.meses[m];
-                return `<td class="col-mes">${v ? v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—'}</td>`;
+                const real = (window._prevRealizado[r.cod_item]||{})[m] || 0;
+                const hoje = new Date();
+                const mesFuturo = (prevAno > hoje.getFullYear()) || (prevAno === hoje.getFullYear() && m > hoje.getMonth()+1);
+                const prevTxt = v ? v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—';
+                const realTxt = real ? real.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : '';
+                const pct = (v && real) ? Math.round(real/v*100) : 0;
+                const pctColor = pct > 110 ? 'var(--negative)' : pct >= 90 ? 'var(--positive)' : 'var(--warning)';
+                return `<td class="col-mes"><div>${prevTxt}</div>${!mesFuturo && realTxt ? '<div style="font-size:10px;color:'+pctColor+';margin-top:2px;">'+realTxt+' <span style="opacity:.6">('+pct+'%)</span></div>' : ''}</td>`;
               }).join('')}
-              <td class="col-mes col-total">${r.total.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})}</td>
+              <td class="col-mes col-total">
+                <div>${r.total.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+                ${(() => { const realTotal = Object.values((window._prevRealizado[r.cod_item]||{})).reduce((a,b)=>a+b,0); const pct = r.total ? Math.round(realTotal/r.total*100) : 0; const c = pct > 110 ? 'var(--negative)' : pct >= 90 ? 'var(--positive)' : 'var(--warning)'; return realTotal ? '<div style="font-size:10px;color:'+c+';margin-top:2px;">'+realTotal.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})+' <span style="opacity:.6">('+pct+'%)</span></div>' : ''; })()}
+              </td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -4484,7 +4605,7 @@ function renderPPTable(){
     th.classList.toggle('filtered',!!(ppColFilters[th.dataset.col]?.size));
   });
   document.getElementById('ppTableBody').innerHTML=slice.length
-    ?slice.map(r=>`<tr onclick="openPPModal(${r.id})">
+    ?slice.map(r=>`<tr onclick="openPPModal(${r.id})" style="${r.ativo===false?'opacity:0.4;':''}">
         <td style="text-align:center;color:var(--gold);font-size:11px">${r.codigo_pp}</td>
         <td style="text-align:left;">${r.descricao}</td>
         <td style="text-align:center">${r.qtd_unit}</td>
@@ -4573,6 +4694,7 @@ function openPPModal(id){
   document.getElementById('ppFQtdCx').value=row?.qtd_cx_master||'';
   document.getElementById('ppFSku').value=row?.sku||'';
   document.getElementById('btnDeletePP').style.display=row?'inline-block':'none';
+  document.getElementById('ppFAtivo').checked=row?.ativo!==false;
   document.getElementById('ppModalOverlay').classList.add('open');
 }
 
@@ -4592,7 +4714,7 @@ document.getElementById('btnSavePP').addEventListener('click',async()=>{
   const qtd_cx=parseFloat(document.getElementById('ppFQtdCx').value)||0;
   const sku=document.getElementById('ppFSku').value.trim().toUpperCase();
   if(!codigo||!descricao||!familia||!linha){showToast('warning','Campos obrigatórios','Preencha código, descrição, família e linha.');return;}
-  const payload={codigo_pp:codigo,descricao,qtd_unit,familia,cod_sku:cod_sku||null,qtd_cx_master:qtd_cx||null,sku:sku||null,linha_producao:linha};
+  const payload={codigo_pp:codigo,descricao,qtd_unit,familia,cod_sku:cod_sku||null,qtd_cx_master:qtd_cx||null,sku:sku||null,linha_producao:linha,ativo:document.getElementById('ppFAtivo').checked};
   try{
     if(id){
       const r=await fetch(`${SB_URL}/rest/v1/cadastros_pp?id=eq.${id}`,{method:'PATCH',headers:SB_HDR,body:JSON.stringify(payload)});
@@ -4670,7 +4792,7 @@ function renderMatTable(){
     ?slice.map(r=>{
       const tags=(r.tags||[]);
       const tagsHtml=tags.length?tags.map(t=>`<span class="mat-tag-badge">${t}</span>`).join(''):'<span style="color:var(--text-dim);font-size:11px">—</span>';
-      return `<tr onclick="openMatModal(${r.id})">
+      return `<tr onclick="openMatModal(${r.id})" style="${r.ativo===false?'opacity:0.4;':''}">
         <td style="text-align:center;color:var(--gold);font-size:11px">${r.codigo}</td>
         <td style="text-align:left;">${r.descricao}</td>
         <td style="text-align:center;"><span style="font-size:11px;${tipoColor(r.tipo)}">${r.tipo||'—'}</span></td>
@@ -4753,6 +4875,7 @@ async function openMatModal(id){
   document.getElementById('matFTipo').value=row?.tipo||'';
   document.getElementById('matFCoefPerdas').value=row?.coef_perdas!=null?row.coef_perdas:'';
   document.getElementById('matFDiasCobertura').value=row?.dias_cobertura||'';
+  document.getElementById('matFAtivo').checked=row?.ativo!==false;
   matTagsCurrent = row?.tags ? [...row.tags] : [];
   // Carregar tags pré-cadastradas se ainda não foram carregadas
   if (!allTags.length) await loadAllTags();
@@ -4779,7 +4902,8 @@ document.getElementById('btnSaveMat').addEventListener('click',async()=>{
   const dias_cobertura=diasCobRaw!==''?parseInt(diasCobRaw):0;
   if(!codigo||!descricao||!tipo){showToast('warning','Campos obrigatórios','Preencha código, descrição e tipo.');return;}
   const tags=matTagsCurrent.map(t=>t.trim()).filter(Boolean);
-  const payload={codigo,descricao,tipo,coef_perdas,dias_cobertura,tags,atualizado_em:new Date().toISOString()};
+  const ativo=document.getElementById('matFAtivo').checked;
+  const payload={codigo,descricao,tipo,coef_perdas,dias_cobertura,tags,ativo,atualizado_em:new Date().toISOString()};
   try{
     if(id){
       const r=await fetch(`${SB_URL}/rest/v1/cadastros_materiais?id=eq.${id}`,{method:'PATCH',headers:SB_HDR,body:JSON.stringify(payload)});
