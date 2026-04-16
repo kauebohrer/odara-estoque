@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -947,23 +947,18 @@
     <div id="gerEmpty" style="color:var(--text-muted);font-size:13px;display:none;">Nenhum material encontrado.</div>
 
     <div style="overflow-x:auto;">
-      <table class="mov-table" id="gerTable" style="display:none;min-width:1100px;">
+      <table class="mov-table" id="gerTable" style="display:none;min-width:900px;">
         <thead>
           <tr>
             <th style="width:40px;text-align:center;">Farol</th>
             <th style="text-align:center;cursor:pointer;" onclick="sortGerencia('codigo')">Código <span id="gerSort_codigo"></span></th>
             <th style="text-align:left;cursor:pointer;" onclick="sortGerencia('descricao')">Descrição <span id="gerSort_descricao"></span></th>
             <th style="text-align:center;">Tipo</th>
-            <th style="text-align:center;">Unid.</th>
-            <th style="text-align:center;cursor:pointer;" onclick="sortGerencia('estoque')">Estoque Atual <span id="gerSort_estoque"></span></th>
-            <th style="text-align:center;cursor:pointer;" onclick="sortGerencia('dias')">Dias Estoque <span id="gerSort_dias"></span></th>
-            <th style="text-align:center;">Demanda M0</th>
-            <th style="text-align:center;">Demanda M1</th>
-            <th style="text-align:center;">Demanda M2</th>
-            <th style="text-align:center;">Compras M0</th>
-            <th style="text-align:center;">Compras M1</th>
-            <th style="text-align:center;">Compras M2</th>
-            <th style="text-align:center;">Última Entrada</th>
+            <th style="text-align:center;cursor:pointer;" onclick="sortGerencia('segQtd')">Estq<br>Segurança <span id="gerSort_segQtd"></span></th>
+            <th style="text-align:center;cursor:pointer;" onclick="sortGerencia('estoque')">Estoque<br>Atual <span id="gerSort_estoque"></span></th>
+            <th style="text-align:center;cursor:pointer;" onclick="sortGerencia('cobAtual')">Cob Estq<br>Atual <span id="gerSort_cobAtual"></span></th>
+            <th style="text-align:center;cursor:pointer;" onclick="sortGerencia('totalOC')">Ordens de<br>Compras <span id="gerSort_totalOC"></span></th>
+            <th style="text-align:center;cursor:pointer;" onclick="sortGerencia('dias')">Dias de<br>Estoque <span id="gerSort_dias"></span></th>
           </tr>
         </thead>
         <tbody id="gerTbody"></tbody>
@@ -1774,6 +1769,39 @@
       <!-- Gráfico -->
       <div id="pmQvChartWrap" style="position:relative;height:300px;display:none;">
         <canvas id="pmQvChart"></canvas>
+      </div>
+      <!-- Tabelas de Compras -->
+      <div id="pmQvComprasWrap" style="display:none;gap:16px;flex-wrap:wrap;margin-top:20px;">
+        <div style="flex:1;min-width:420px;">
+          <div style="font-size:13px;color:var(--gold-light);font-weight:500;letter-spacing:.04em;margin-bottom:8px;">📥 Últimas 5 Compras</div>
+          <div style="border:1px solid var(--border);border-radius:4px;overflow:hidden;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;" id="pmQvTbUltCompras">
+              <thead><tr style="background:var(--surface-2);color:var(--text-dim);font-size:11px;letter-spacing:.04em;">
+                <th style="padding:8px 10px;text-align:left;">Data</th>
+                <th style="padding:8px 10px;text-align:left;">Fornecedor</th>
+                <th style="padding:8px 10px;text-align:right;">Qtd</th>
+                <th style="padding:8px 10px;text-align:right;">Custo Unit.</th>
+                <th style="padding:8px 10px;text-align:right;">Valor</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div style="flex:1;min-width:420px;">
+          <div style="font-size:13px;color:var(--gold-light);font-weight:500;letter-spacing:.04em;margin-bottom:8px;">📋 Compras Agendadas</div>
+          <div style="border:1px solid var(--border);border-radius:4px;overflow:hidden;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;" id="pmQvTbAgendadas">
+              <thead><tr style="background:var(--surface-2);color:var(--text-dim);font-size:11px;letter-spacing:.04em;">
+                <th style="padding:8px 10px;text-align:left;">Data</th>
+                <th style="padding:8px 10px;text-align:left;">Fornecedor</th>
+                <th style="padding:8px 10px;text-align:right;">Qtd</th>
+                <th style="padding:8px 10px;text-align:right;">Custo Unit.</th>
+                <th style="padding:8px 10px;text-align:right;">Valor</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
       </div>
       <!-- Tabela de Simulação -->
       <div id="pmQvSimWrap" style="display:none;margin-top:20px;">
@@ -3044,14 +3072,19 @@ async function loadGerencia() {
       };
       const dm0 = sumMes(M0), dm1 = sumMes(M1), dm2 = sumMes(M2);
 
-      // Dias de estoque: estoque atual / consumo diário médio dos 3 meses
-      const totalSaidas90 = dm0.saidas + dm1.saidas + dm2.saidas;
+      // Consumo diário médio dos 3 meses (saídas previstas vêm negativas no banco → abs)
+      const totalSaidas90 = Math.abs(dm0.saidas) + Math.abs(dm1.saidas) + Math.abs(dm2.saidas);
       const consumoDiario = totalSaidas90 / 90;
-      // considera também compras agendadas já no estoque projetado
-      const totalCompras90 = dm0.entradas + dm1.entradas + dm2.entradas;
-      // saldo projetado = estoque + compras agendadas nos 3 meses
-      const saldoProjetado = estoque + totalCompras90;
+      // Ordens de Compras: soma das compras agendadas nos 3 meses
+      const totalOC = dm0.entradas + dm1.entradas + dm2.entradas;
+      // Cobertura do estoque atual (sem OC)
+      const cobAtual = consumoDiario > 0 ? Math.round(estoque / consumoDiario) : (estoque > 0 ? 999 : 0);
+      // Dias de Estoque = cobertura considerando estoque + OC
+      const saldoProjetado = estoque + totalOC;
       const dias = consumoDiario > 0 ? Math.round(saldoProjetado / consumoDiario) : (estoque > 0 ? 999 : 0);
+      // Estoque de segurança
+      const segDias = mat.dias_cobertura || 0;
+      const segQtd  = segDias * consumoDiario;
 
       // Farol — baseado em dias_cobertura se configurado, senão 30/60 dias default
       const dc = mat.dias_cobertura || 0;
@@ -3068,19 +3101,15 @@ async function loadGerencia() {
         codigo: mat.codigo,
         descricao: mat.descricao,
         tipo: mat.tipo || '',
-        unidade: '',
         estoque,
+        cobAtual,
+        totalOC,
         dias,
+        segDias,
+        segQtd,
         farol,
         farolIcon,
         farolOrder,
-        demM0: dm0.saidas,
-        demM1: dm1.saidas,
-        demM2: dm2.saidas,
-        cmpM0: dm0.entradas,
-        cmpM1: dm1.entradas,
-        cmpM2: dm2.entradas,
-        ultimaEntrada,
       });
     });
 
@@ -3212,7 +3241,7 @@ function renderGerencia() {
   });
 
   // Atualizar ícones de sort
-  ['codigo','descricao','estoque','dias'].forEach(c => {
+  ['codigo','descricao','estoque','cobAtual','totalOC','dias','segQtd'].forEach(c => {
     const el = document.getElementById('gerSort_' + c);
     if (el) el.textContent = gerSortCol === c ? (gerSortDir === 'asc' ? ' ▲' : ' ▼') : '';
   });
@@ -3242,16 +3271,11 @@ function renderGerencia() {
       <td style="text-align:center;font-family:monospace;font-size:12px;">${r.codigo}</td>
       <td style="text-align:left;cursor:pointer;" onclick="openPmQuickView('${r.codigo}','${r.descricao.replace(/'/g,'')}')" onmouseover="this.style.color='var(--gold-light)'" onmouseout="this.style.color=''">${r.descricao}</td>
       <td style="text-align:center;"><span class="badge badge-neu" style="font-size:10px;">${r.tipo}</span></td>
-      <td style="text-align:center;">${r.unidade||'—'}</td>
+      <td style="text-align:center;">${r.segQtd > 0 ? fmtN(r.segQtd) : '—'}</td>
       <td style="text-align:center;">${fmtN(r.estoque)}</td>
+      <td style="text-align:center;">${fmtDias(r.cobAtual)}</td>
+      <td style="text-align:center;color:var(--positive);">${r.totalOC > 0 ? fmtN(r.totalOC) : '—'}</td>
       <td style="text-align:center;font-weight:600;color:${r.farol==='critico'?'var(--negative)':r.farol==='atencao'?'var(--warning)':'var(--positive)'};">${fmtDias(r.dias)}</td>
-      <td style="text-align:center;">${fmtN(r.demM0)}</td>
-      <td style="text-align:center;">${fmtN(r.demM1)}</td>
-      <td style="text-align:center;">${fmtN(r.demM2)}</td>
-      <td style="text-align:center;color:var(--positive);">${fmtN(r.cmpM0)||'—'}</td>
-      <td style="text-align:center;color:var(--positive);">${fmtN(r.cmpM1)||'—'}</td>
-      <td style="text-align:center;color:var(--positive);">${fmtN(r.cmpM2)||'—'}</td>
-      <td style="text-align:center;font-size:11px;color:var(--text-muted);">${fmtD(r.ultimaEntrada)}</td>
     </tr>`).join('');
 
   // Paginação
@@ -3281,22 +3305,23 @@ function exportGerenciaExcel() {
     return d.toLocaleString('pt-BR',{month:'short',year:'2-digit'}).replace('.','');
   };
   const header = [
-    'Farol','Código','Descrição','Tipo','Unidade','Estoque Atual','Dias Estoque',
-    `Demanda ${nomeMes(0)}`,`Demanda ${nomeMes(1)}`,`Demanda ${nomeMes(2)}`,
-    `Compras ${nomeMes(0)}`,`Compras ${nomeMes(1)}`,`Compras ${nomeMes(2)}`,
-    'Última Entrada'
+    'Farol','Código','Descrição','Tipo',
+    'Estq Segurança','Estoque Atual',
+    'Cob Estq Atual (dias)','Ordens de Compras',
+    'Dias de Estoque (com OC)'
   ];
   const rows = gerFiltered.map(r => [
     r.farol==='critico'?'Crítico':r.farol==='atencao'?'Atenção':'OK',
-    r.codigo, r.descricao, r.tipo, r.unidade||'',
-    r.estoque, r.dias >= 999 ? 9999 : r.dias,
-    r.demM0, r.demM1, r.demM2,
-    r.cmpM0, r.cmpM1, r.cmpM2,
-    r.ultimaEntrada||''
+    r.codigo, r.descricao, r.tipo,
+    Math.round(r.segQtd || 0),
+    r.estoque,
+    r.cobAtual >= 999 ? 9999 : r.cobAtual,
+    r.totalOC || 0,
+    r.dias >= 999 ? 9999 : r.dias
   ]);
   const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
-  ws['!cols'] = [{wch:10},{wch:12},{wch:40},{wch:14},{wch:8},{wch:14},{wch:12},
-    {wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14}];
+  ws['!cols'] = [{wch:10},{wch:12},{wch:40},{wch:14},
+    {wch:14},{wch:14},{wch:16},{wch:16},{wch:18}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Gerência Estoque');
   XLSX.writeFile(wb, `gerencia_estoque_${new Date().toISOString().slice(0,10)}.xlsx`);
@@ -3479,11 +3504,10 @@ let prevResultado = []; // cache do último cálculo: [{cod_item, desc_item, tip
 async function loadPrevisaoConsumo() {
   try {
     // 1. Carregar dados necessários em paralelo
-    const [metas, estrutura, materiais, pp] = await Promise.all([
+    const [metas, estrutura, materiais] = await Promise.all([
       sbGet('metas_sku',          'select=cod_sku,ano,mes,meta_cx'),
       sbGet('estrutura_produto',  'select=cod_prod,cod_item,desc_item,qtd_ideal_unit'),
       sbGet('cadastros_materiais','select=codigo,descricao,tipo,coef_perdas,ativo&ativo=eq.true'),
-      sbGet('cadastros_pp',       'select=codigo_pp,cod_sku,qtd_cx_master,descricao,ativo&ativo=eq.true'),
     ]);
 
     // 2. Montar seletor de ano
@@ -3499,19 +3523,16 @@ async function loadPrevisaoConsumo() {
         seg.querySelectorAll('button').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         prevAno = parseInt(btn.dataset.ano);
-        renderPrevisao(metas, estrutura, materiais, pp, movSaidas);
+        renderPrevisao(metas, estrutura, materiais);
       });
     });
 
-    // Buscar saídas reais (consumo) das movimentações
-    const movSaidas = await sbGet('movimentacoes', 'select=codigo_produto,data,quantidade,origem&origem=eq.Consumo da Ordem de Produção&order=data.asc');
-
-    renderPrevisao(metas, estrutura, materiais, pp, movSaidas);
+    renderPrevisao(metas, estrutura, materiais);
 
   } catch(e) { showToast('error', 'Erro ao carregar previsão', e.message); }
 }
 
-function renderPrevisao(metas, estrutura, materiais, pp, movSaidas) {
+function renderPrevisao(metas, estrutura, materiais) {
   const meses = [1,2,3,4,5,6,7,8,9,10,11,12];
 
   // --- Índices rápidos ---
@@ -3519,16 +3540,7 @@ function renderPrevisao(metas, estrutura, materiais, pp, movSaidas) {
   const matMap = {};
   materiais.forEach(m => matMap[m.codigo] = m);
 
-  // pp: para cada cod_sku, encontrar a apresentação CX master (qtd_cx_master = 1.0)
-  // Essa é a apresentação que tem a estrutura de produto cadastrada
-  const skuToCodProd = {};
-  pp.forEach(p => {
-    if (Math.abs(p.qtd_cx_master - 1.0) < 0.001) {
-      skuToCodProd[p.cod_sku] = p.codigo_pp;
-    }
-  });
-
-  // estrutura por cod_prod
+  // estrutura por cod_prod (convenção: cod_prod == cod_sku para a linha master do SKU)
   const epMap = {}; // cod_prod -> [{cod_item, qtd_ideal_unit}]
   estrutura.forEach(e => {
     if (!epMap[e.cod_prod]) epMap[e.cod_prod] = [];
@@ -3547,9 +3559,7 @@ function renderPrevisao(metas, estrutura, materiais, pp, movSaidas) {
   const semEstrutura = [];
 
   Object.entries(metasAnoMap).forEach(([cod_sku, mesMap]) => {
-    const cod_prod_cx = skuToCodProd[cod_sku];
-    if (!cod_prod_cx) { semEstrutura.push(cod_sku); return; }
-    const itens = epMap[cod_prod_cx];
+    const itens = epMap[cod_sku];
     if (!itens || !itens.length) { semEstrutura.push(cod_sku); return; }
 
     [1,2,3,4,5,6,7,8,9,10,11,12].forEach(m => {
@@ -3558,6 +3568,8 @@ function renderPrevisao(metas, estrutura, materiais, pp, movSaidas) {
 
       itens.forEach(({ cod_item, desc_item, qtd }) => {
         const mat = matMap[cod_item];
+        // Pular materiais que não estão no cadastro ativo
+        if (!mat) return;
         const coef = mat?.coef_perdas ?? 0;
         const fator = 1 + coef / 100;
         const consumo = meta * qtd * fator;
@@ -3565,8 +3577,8 @@ function renderPrevisao(metas, estrutura, materiais, pp, movSaidas) {
         if (!resultado[cod_item]) {
           resultado[cod_item] = {
             cod_item,
-            desc_item: mat?.descricao || desc_item,
-            tipo: mat?.tipo || '—',
+            desc_item: mat.descricao || desc_item,
+            tipo: mat.tipo || '—',
             coef_perdas: coef,
             meses: {},
             total: 0,
@@ -3580,23 +3592,10 @@ function renderPrevisao(metas, estrutura, materiais, pp, movSaidas) {
 
   prevResultado = Object.values(resultado).sort((a,b) => a.cod_item.localeCompare(b.cod_item));
 
-  // --- Realizado (consumo real das movimentações) ---
-  window._prevRealizado = {};
-  (movSaidas || []).forEach(r => {
-    if (!r.data) return;
-    const ano = parseInt(r.data.slice(0,4));
-    if (ano !== prevAno) return;
-    const mes = parseInt(r.data.slice(5,7));
-    const cod = r.codigo_produto;
-    const qty = Math.abs(parseFloat(r.quantidade || 0));
-    if (!window._prevRealizado[cod]) window._prevRealizado[cod] = {};
-    window._prevRealizado[cod][mes] = (window._prevRealizado[cod][mes] || 0) + qty;
-  });
-
   // --- Alertas ---
   const alertDiv = document.getElementById('prevAlerts');
   const alerts = [];
-  if (semEstrutura.length) alerts.push(`⚠ ${semEstrutura.length} SKU(s) sem apresentação CX master cadastrada na Estrutura de Produto: ${[...new Set(semEstrutura)].join(', ')}`);
+  if (semEstrutura.length) alerts.push(`⚠ ${semEstrutura.length} SKU(s) sem estrutura cadastrada: ${[...new Set(semEstrutura)].join(', ')}`);
   if (!Object.keys(metasAnoMap).length) alerts.push(`ℹ Nenhuma meta cadastrada para ${prevAno}. Acesse Metas de Vendas para preencher.`);
   alertDiv.innerHTML = alerts.map(a => `<div class="prev-alert">${a}</div>`).join('');
 
@@ -3647,19 +3646,10 @@ function renderPrevisaoTabela() {
               <td class="col-coef" style="text-align:center">${r.coef_perdas > 0 ? r.coef_perdas.toFixed(1)+'%' : '—'}</td>
               ${meses.map(m => {
                 const v = r.meses[m];
-                const real = (window._prevRealizado[r.cod_item]||{})[m] || 0;
-                const hoje = new Date();
-                const mesFuturo = (prevAno > hoje.getFullYear()) || (prevAno === hoje.getFullYear() && m > hoje.getMonth()+1);
                 const prevTxt = v ? v.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—';
-                const realTxt = real ? real.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0}) : '';
-                const pct = (v && real) ? Math.round(real/v*100) : 0;
-                const pctColor = pct > 110 ? 'var(--negative)' : pct >= 90 ? 'var(--positive)' : 'var(--warning)';
-                return `<td class="col-mes"><div>${prevTxt}</div>${!mesFuturo && realTxt ? '<div style="font-size:10px;color:'+pctColor+';margin-top:2px;">'+realTxt+' <span style="opacity:.6">('+pct+'%)</span></div>' : ''}</td>`;
+                return `<td class="col-mes">${prevTxt}</td>`;
               }).join('')}
-              <td class="col-mes col-total">
-                <div>${r.total.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
-                ${(() => { const realTotal = Object.values((window._prevRealizado[r.cod_item]||{})).reduce((a,b)=>a+b,0); const pct = r.total ? Math.round(realTotal/r.total*100) : 0; const c = pct > 110 ? 'var(--negative)' : pct >= 90 ? 'var(--positive)' : 'var(--warning)'; return realTotal ? '<div style="font-size:10px;color:'+c+';margin-top:2px;">'+realTotal.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})+' <span style="opacity:.6">('+pct+'%)</span></div>' : ''; })()}
-              </td>
+              <td class="col-mes col-total">${r.total.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0})}</td>
             </tr>`).join('')}
           </tbody>
         </table>
@@ -6933,6 +6923,7 @@ function openPmQuickView(codigo, descricao) {
   document.getElementById('pmQvChartWrap').style.display = 'none';
   document.getElementById('pmQvSimWrap').style.display = 'none';
   document.getElementById('pmQvAlerts').innerHTML = '';
+  document.getElementById('pmQvComprasWrap').style.display = 'none';
   document.getElementById('btnQvConfirmarCompra').style.display = 'none';
   document.getElementById('pmQuickViewOverlay').classList.add('open');
   loadPmQuickViewData(codigo);
@@ -7003,25 +6994,18 @@ async function loadPmQuickViewData(codMaterial) {
                        saldoFinalPrev < saldoAtual * 0.15 ? 'var(--warning)' : 'var(--positive)';
     document.getElementById('pmQvCards').style.display = 'flex';
 
-    // Alertas
-    const alerts = [];
+    // Subtítulo com estoque de segurança (sem alertas)
     const estSeg = getEstoqueSeguranca(codMaterial);
     if (estSeg > 0) {
       const diasCob = estoqueSegurancaMap[codMaterial]?.dias || 0;
       const consumoDia = estoqueSegurancaMap[codMaterial]?.consumoDiario || 0;
       document.getElementById('pmQvSub').textContent =
         `${codMaterial}  ·  Est. Segurança: ${fmtN(estSeg)} (${diasCob} dias × ${fmtN(consumoDia)}/dia)`;
-      if (saldoAtual < estSeg) {
-        alerts.push(`⚠️ Estoque atual (${fmtN(saldoAtual)}) está abaixo do estoque de segurança (${fmtN(estSeg)})`);
-      }
     }
-    const diasNeg = previstos.filter(r => parseFloat(r.saldo_final) < 0);
-    if (diasNeg.length) {
-      const d = diasNeg[0].data;
-      const [y,m,dd] = d.split('-');
-      alerts.push(`🔴 Estoque negativo previsto a partir de ${dd}/${m}/${y} (${diasNeg.length} dias negativos)`);
-    }
-    alertDiv.innerHTML = alerts.map(a => `<div class="prev-alert">${a}</div>`).join('');
+    alertDiv.innerHTML = '';
+
+    // Buscar últimas compras e compras agendadas em paralelo
+    renderQvTabelasCompras(codMaterial);
 
     // Agregar por mês para a tabela de simulação
     const mesesMap = {};
@@ -7047,6 +7031,61 @@ async function loadPmQuickViewData(codMaterial) {
     document.getElementById('pmQvLoading').style.display = 'none';
     document.getElementById('pmQvAlerts').innerHTML =
       `<div class="prev-alert" style="color:var(--negative);">❌ Erro: ${e.message}</div>`;
+  }
+}
+
+async function renderQvTabelasCompras(codMaterial) {
+  const wrap = document.getElementById('pmQvComprasWrap');
+  const tbUlt = document.querySelector('#pmQvTbUltCompras tbody');
+  const tbAg  = document.querySelector('#pmQvTbAgendadas tbody');
+  wrap.style.display = 'flex';
+  tbUlt.innerHTML = '<tr><td colspan="5" style="padding:10px;text-align:center;color:var(--text-dim);font-size:11px;">Carregando…</td></tr>';
+  tbAg.innerHTML  = '<tr><td colspan="5" style="padding:10px;text-align:center;color:var(--text-dim);font-size:11px;">Carregando…</td></tr>';
+
+  const fmtN   = v => Math.round(v).toLocaleString('pt-BR');
+  const fmtBRL = v => 'R$ ' + (v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const fmtData = d => d ? d.split('-').reverse().join('/') : '—';
+  const empty = '<tr><td colspan="5" style="padding:12px;text-align:center;color:var(--text-dim);font-size:11px;">Nenhum registro.</td></tr>';
+
+  try {
+    const origens = 'origem=in.(Compra de Produto,Nota de Entrada de Produto)';
+    const [ultimas, agendadas] = await Promise.all([
+      sbGet('movimentacoes',
+        `select=data,cliente_fornecedor,quantidade,valor_movimento&codigo_produto=eq.${encodeURIComponent(codMaterial)}&${origens}&order=data.desc&limit=5`),
+      sbGet('compras_agendadas',
+        `select=prev_entrega,fornecedor,quantidade,vlr_compra&codigo_produto=eq.${encodeURIComponent(codMaterial)}&order=prev_entrega.asc`),
+    ]);
+
+    tbUlt.innerHTML = ultimas.length ? ultimas.map(r => {
+      const qtd = parseFloat(r.quantidade||0);
+      const vlrUnit = parseFloat(r.valor_movimento||0);
+      const total = qtd * vlrUnit;
+      return `<tr style="border-top:1px solid var(--border);">
+        <td style="padding:7px 10px;text-align:left;">${fmtData(r.data)}</td>
+        <td style="padding:7px 10px;text-align:left;">${r.cliente_fornecedor||'—'}</td>
+        <td style="padding:7px 10px;text-align:right;">${fmtN(qtd)}</td>
+        <td style="padding:7px 10px;text-align:right;">${vlrUnit > 0 ? fmtBRL(vlrUnit) : '—'}</td>
+        <td style="padding:7px 10px;text-align:right;">${total > 0 ? fmtBRL(total) : '—'}</td>
+      </tr>`;
+    }).join('') : empty;
+
+    tbAg.innerHTML = agendadas.length ? agendadas.map(r => {
+      const qtd = parseFloat(r.quantidade||0);
+      const total = parseFloat(r.vlr_compra||0);
+      const unit = qtd > 0 ? total / qtd : 0;
+      return `<tr style="border-top:1px solid var(--border);">
+        <td style="padding:7px 10px;text-align:left;">${fmtData(r.prev_entrega)}</td>
+        <td style="padding:7px 10px;text-align:left;">${r.fornecedor||'—'}</td>
+        <td style="padding:7px 10px;text-align:right;">${fmtN(qtd)}</td>
+        <td style="padding:7px 10px;text-align:right;">${unit > 0 ? fmtBRL(unit) : '—'}</td>
+        <td style="padding:7px 10px;text-align:right;">${total > 0 ? fmtBRL(total) : '—'}</td>
+      </tr>`;
+    }).join('') : empty;
+
+  } catch(e) {
+    const err = `<tr><td colspan="5" style="padding:10px;text-align:center;color:var(--negative);font-size:11px;">Erro: ${e.message}</td></tr>`;
+    tbUlt.innerHTML = err;
+    tbAg.innerHTML = err;
   }
 }
 
