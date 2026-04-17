@@ -938,9 +938,9 @@
 
     <!-- Legenda farol -->
     <div style="display:flex;gap:20px;margin-bottom:14px;font-size:12px;color:var(--text-muted);">
-      <span>🔴 Crítico: menos de 30 dias de estoque</span>
-      <span>🟡 Atenção: 30 a 60 dias</span>
-      <span>🟢 OK: mais de 60 dias</span>
+      <span>🔴 Crítico: estoque atual abaixo do estoque de segurança</span>
+      <span>🟡 Atenção: previsão de ficar abaixo nos próximos 60 dias</span>
+      <span>🟢 OK: sem previsão de risco nos próximos 60 dias</span>
     </div>
 
     <div id="gerLoading" style="color:var(--text-muted);font-size:13px;display:none;">⏳ Carregando dados…</div>
@@ -3086,13 +3086,22 @@ async function loadGerencia() {
       const segDias = mat.dias_cobertura || 0;
       const segQtd  = segDias * consumoDiario;
 
-      // Farol — baseado em dias_cobertura se configurado, senão 30/60 dias default
-      const dc = mat.dias_cobertura || 0;
+      // Farol — baseado em estoque de segurança:
+      //   🔴 se estoque atual < estoque de segurança
+      //   🟡 se há previsão de saldo < estoque de segurança nos próximos 60 dias
+      //   🟢 caso contrário (ou se estoque de segurança não configurado)
       let farol;
-      if (dc > 0) {
-        farol = dias < dc * 0.5 ? 'critico' : dias < dc ? 'atencao' : 'ok';
+      if (segQtd <= 0) {
+        farol = 'ok';
+      } else if (estoque < segQtd) {
+        farol = 'critico';
       } else {
-        farol = dias < 30 ? 'critico' : dias <= 60 ? 'atencao' : 'ok';
+        const data60 = new Date(hoje.getTime() + 60*86400000).toISOString().slice(0,10);
+        const temRiscoProx60 = prev.some(r =>
+          r.data >= dataHojeFmt && r.data <= data60 &&
+          parseFloat(r.saldo_final || 0) < segQtd
+        );
+        farol = temRiscoProx60 ? 'atencao' : 'ok';
       }
       const farolIcon = farol === 'critico' ? '🔴' : farol === 'atencao' ? '🟡' : '🟢';
       const farolOrder = farol === 'critico' ? 0 : farol === 'atencao' ? 1 : 2;
